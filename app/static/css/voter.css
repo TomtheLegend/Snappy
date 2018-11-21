@@ -34,7 +34,6 @@ body {
 
 .vote_button {
     background-color: #4CAF50;
-    background-color: red;
     border: 2px solid ;
     color: white;
     padding: 15px 25px;
@@ -141,3 +140,6 @@ label:hover ~ input:checked ~ label /* highlight previous selected stars */ { co
    object-fit: contain;
 }
 
+.summary {
+  border: 10px solid #5499C7;
+}

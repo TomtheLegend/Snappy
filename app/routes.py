@@ -79,13 +79,21 @@ def voter_disconnect():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
     form = LoginForm()
     if form.validate_on_submit():
         # validate the user
         user = User.query.filter_by(username=form.username.data).first()
+        print(user.logged_in)
         if user is not None:
-            login_user(user)
-            flash("login Success")
-            return redirect(request.args.get('next') or url_for('index'))
+            if user.logged_in is False:
+                login_user(user)
+                user.logged_in = True
+                db.session.commit()
+                flash("login Success")
+                return redirect(request.args.get('next') or url_for('index'))
         flash("Incorrect Username")
     return render_template('login.html', form=form)
+
+

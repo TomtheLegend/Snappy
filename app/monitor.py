@@ -1,10 +1,11 @@
 __author__ = 'tomli'
 from threading import Thread, Event
 from app import socketio
-from app.models import Card, User, Votes, Rulings
+from app.models import Card, User, Votes
 from app import app, db
 from time import sleep
 from flask_socketio import emit
+from app import card_info
 
 thread = Thread()
 thread_stop_event = Event()
@@ -30,11 +31,11 @@ class MonitorThread(Thread):
                 current_users = User.query.filter_by(voting=True).all()
                 for user in current_users:
                         user_voters_count += 1
-                print('user_voters_count: ' + str(user_voters_count))
+                print('active_voters_count: ' + str(user_voters_count))
 
                 #get tracker count, ensure all votes collected
                 votes_list = Votes.query.filter_by(card_id=current_card.id).all()
-                print('votes_list count: ' + str(len(votes_list)))
+                print('current_cast_votes: ' + str(len(votes_list)))
                 if len(votes_list) == user_voters_count and user_voters_count > 0:
                     # calculate score and update the Card  table
                     average_vote = 0
@@ -52,13 +53,13 @@ class MonitorThread(Thread):
 
                     # get the data for current card and send to users
 
-                    emit('card_data_message', self.get_card_info(),  namespace='/', broadcast=True)
+                    emit('card_data_message', card_info.get_card_info(),  namespace='/', broadcast=True)
 
                     # show the button for all users
-                    self.send_update_vote_bar(False)
+                    card_info.send_update_vote_bar(False)
 
                 #update the vote bar for voters, showing number of voters.
-                self.send_update_vote_bar()
+                card_info.send_update_vote_bar()
 
                 sleep(self.delay)
 
@@ -66,44 +67,6 @@ class MonitorThread(Thread):
         self.monitor_function()
 
 
-    def get_current_voters(self):
-        user_voters_count = 0
-        current_users = User.query.filter_by(voting=True).all()
-        for user in current_users:
-            user_voters_count += 1
-        return user_voters_count
-
-
-    def get_current_vote_count(self):
-        current_card = Card.query.filter_by(current_selected=True).first()
-        votes_list = Votes.query.filter_by(card_id=current_card.id).all()
-        print(len(votes_list))
-        return len(votes_list)
-
-    def get_current_votes_string(self):
-        return "{} / {} votes ".format(self.get_current_vote_count(), self.get_current_voters())
-
-    def send_update_vote_bar(self, disable_all=''):
-        votes = self.get_current_votes_string()
-        print (disable_all)
-        emit('vote_bar_message', {'button_disabled': disable_all, 'current_votes': votes, 'last_vote': ''},  namespace='/', broadcast=True)
-
-    def get_card_info(self):
-        # returns a dict of data
-        #dict is split into sections to copy the page, each section is added seperately
-        card_dict = {'card_image': '', 'rulings': [], 'info': {}}
-        current_card = Card.query.filter_by(current_selected=True).first()
-
-        #card_image
-        card_dict['card_image'] = current_card.card_image
-
-        # rulings
-        card_rulings = Rulings.query.filter_by(card_id=current_card.id).all()
-        for rule in card_rulings:
-            card_dict['rulings'].append(rule.ruling)
-
-
-        return card_dict
 
 
 

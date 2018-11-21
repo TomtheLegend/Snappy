@@ -60,16 +60,29 @@
 
             </form>
         </div>
-        <!-- Info panel -->
 
+        <!-- Image -->
 
         <div class="card_image">
-                <img src={{card_image}} alt="status" id="card_image" class="card_image">
-            </div>
-
-        <div class="">
-
+           <img src={{card_image}} alt="status" id="card_image" class="card_image">
         </div>
+
+        <!-- Scripts -->
+        <details>
+            <summary class="summary">Card Rulings</summary>
+            <div class="rules" id="rules">
+
+            </div>
+        </details>
+
+        <!-- Card info  -->
+        <details>
+            <summary class="summary">Card Info</summary>
+            <div class="cardinfo" id="cardinfo">
+
+            </div>
+        </details>
+
 
 
         <!-- Scripts -->
@@ -85,7 +98,7 @@
             // used to update the vote bar, pass ''  for no update to value
             socket.on('vote_bar_message', function(data) {
                 //console.log(data);
-                if (data['button_disabled'] != '') {
+                if (data['button_disabled'] != null) {
                     console.log(data['button_disabled']);
                     document.getElementById("vote_button").disabled = data['button_disabled'];
                 }
@@ -98,18 +111,52 @@
             });
 
             socket.on('card_data_message', function(data) {
-                // console.log(data);
+
+                if (data['card_image'] != '') {
+                    document.getElementById("card_image").src = data['card_image'];
+                }
+
+                //remove current card rulings
+                var rules = document.getElementById("rules");
+                var rule_elements = rules.getElementsByClassName("rule_element");
+                while (rule_elements[0]) {
+                    rule_elements[0].parentNode.removeChild(rule_elements[0]);
+                }
+                // check for new rulings
                 if (data['rulings'].length > 0){
                     for (index = 0, len = data['rulings'].length; index < len; ++index) {
-                        // remove elements then add new ones with the data
-                        console.log(data['rulings'][index]);
+                        // add new rules
+                        var newrule = document.createElement ("div");
+                        newrule.innerHTML = data['rulings'][index];
+                        newrule.className = "rule_element";
+                        newrule.style.border = "thin dotted blue";
+
+                        rules.appendChild (newrule);
+
                     }
                 }
 
-                if (data['card_image'] != '') {
-
-                    document.getElementById("card_image").src = data['card_image'];
+                //
+                var cardinfo = document.getElementById("cardinfo");
+                var cardinfo_elements = cardinfo.getElementsByClassName("cardinfo_elements");
+                while (cardinfo_elements[0]) {
+                    cardinfo_elements[0].parentNode.removeChild(cardinfo_elements[0]);
                 }
+
+                for (var key in data['info']) {
+                    // check if the property/key is defined in the object itself, not in parent
+                    if (data['info'].hasOwnProperty(key)) {
+                        // add new rules
+                        var newinfo = document.createElement ("div");
+                        newinfo.innerHTML = key + ': ' + data['info'][key];
+                        newinfo.className = "cardinfo_elements";
+                        newinfo.style.border = "thin dotted blue";
+
+                        cardinfo.appendChild (newinfo);
+                    }
+                }
+
+
 
             });
 

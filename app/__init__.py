@@ -23,11 +23,12 @@ socketio = SocketIO(app, ping_timeout=5, ping_interval=3)
 #configure auth
 login_manager = LoginManager()
 login_manager.session_protection = 'strong'
+login_manager.login_view = 'login'
 login_manager.init_app(app)
 
 from app import routes
 from app.models import User
 
 @login_manager.user_loader
-def load_user(user_pk):
-    return db.session.query(User).get(user_pk)
+def load_user(id):
+    return User.query.filter_by(id=id).first()
