@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.path.pardir))
 
 from app import app, db, socketio
 from flask_script import Manager, prompt_bool
-from app.models import Card, User, Rulings, Card_colour
+from app.models import Card, User, Rulings, Card_colour, Card_Subtypes
 
 manager = Manager(app)
 
@@ -62,16 +62,26 @@ def initdb():
         if card['colors'] is not None:
             if len(card['colors']) == 0:
                 # colourless
-                print('colourless')
+                #print('colourless')
                 db.session.add(Card_colour(card_id=card['collector_number'],
                                        colour='colourless'))
             else:
                 for colour in card['colors']:
-                    print(colour)
+                    #print(colour)
                     db.session.add(Card_colour(card_id=card['collector_number'],
                                        colour=colour))
 
+        # card sub types -
+        #check for sub types
+        if '—' in card['type_line']:
+            suptypes = card['type_line'].split('—')[1].split(' ')
 
+            for sub in suptypes:
+                # add to the db
+                if sub is not '':
+                    print(sub)
+                    db.session.add(Card_Subtypes(card_id=card['collector_number'],
+                                           subtype=sub.strip()))
 
         # add the card rulings
         # collector_number, card['collector_number']
@@ -92,6 +102,7 @@ def initdb():
     db.session.add(User(username='bobtheadmin'))
     db.session.add(User(username='julie'))
     db.session.commit()
+
     print('Added Users')
 
     print('Initalised the DB')
@@ -115,6 +126,11 @@ def dropdb():
 
 @manager.command
 def runserver():
+    sql_str = 'SELECT COUNT(card_id) FROM ( SELECT card_id, colour FROM Card_colour GROUP BY card_id HAVING COUNT(card_id) = 1 )AS ONLY_ONCE WHERE ONLY_ONCE.colour = \'{}\''.format('W')
+
+    solo_colour = db.session.execute(sql_str).fetchall()
+
+
     all_users = User.query.all()
     for user in all_users:
         user.voting = False

@@ -20,6 +20,7 @@ class Card(db.Model):
     trackers = relationship("Votes")
     rulings = relationship("Rulings")
     Card_colour = relationship("Card_colour")
+    Card_Subtypes = relationship("Card_Subtypes")
 
     @staticmethod
     def next_card():
@@ -39,8 +40,6 @@ class User(db.Model, UserMixin):
     logged_in = db.Column(db.Boolean, default=False)
     tracker = relationship("Votes")
 
-
-
 class Votes(db.Model):
     __tablename__ = 'Votes'
     id = db.Column(db.Integer, primary_key=True)
@@ -59,4 +58,10 @@ class Card_colour(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     card_id = db.Column(db.Integer, db.ForeignKey('Card.id'))
     colour = db.Column(db.String(50))
+
+class Card_Subtypes(db.Model):
+    __tablename__ = 'Card_Subtypes'
+    id = db.Column(db.Integer, primary_key=True)
+    card_id = db.Column(db.Integer, db.ForeignKey('Card.id'))
+    subtype = db.Column(db.String(50))
 
