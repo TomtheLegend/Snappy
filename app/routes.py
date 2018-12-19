@@ -1,7 +1,7 @@
 __author__ = 'tomli'
 
 from flask import Flask, render_template, url_for, flash, redirect, request, session
-from app import app, db, socketio
+from app import app, db, socketio, card_info
 from flask_socketio import emit
 from app.models import Card, User, Votes
 from flask_login import login_required, login_user, current_user
@@ -15,7 +15,7 @@ from sqlalchemy import and_, exists
 @app.route('/')
 @app.route('/index')
 def index():
-    return render_template('index.html', card_image="https://img.scryfall.com/cards/normal/en/grn/230a.jpg")
+    return render_template('index.html')
 
 
 @app.route('/vote', methods=['GET', 'POST'])
@@ -26,31 +26,32 @@ def vote():
     return render_template('vote.html', card_image=card_im)
 
 
-@socketio.on('score')
+@socketio.on('score', namespace='/vote')
 def score_recived(data):
-    # handle the sent score
-    score = data['score']
-    if score != '':
-        print('score pressed')
-        # Card.next_card()
-        current_card_id = Card.query.filter_by(current_selected=True).first().id
-        current_user_id = User.query.filter_by(username=current_user.username).first().id
-        tracker_obj = Votes.query.filter((and_(Votes.card_id == current_card_id, Votes.user_id == current_user_id))).first()
-        if tracker_obj:
-            print('updated: ' +str(current_user_id) + ':' + str(current_card_id))
-            tracker_obj.vote_score = score
-        else:
-            print('added: ' +str(current_user_id) + ':' + str(current_card_id))
-            db.session.add(Votes(card_id=current_card_id, user_id=current_user_id, vote_score=score))
+    # handle the sent
+    if card_info.wait_card is False:
+        score = data['score']
+        if score != '':
+            print('score pressed')
+            # Card.next_card()
+            current_card_id = Card.query.filter_by(current_selected=True).first().id
+            current_user_id = User.query.filter_by(username=current_user.username).first().id
+            tracker_obj = Votes.query.filter((and_(Votes.card_id == current_card_id, Votes.user_id == current_user_id))).first()
+            if tracker_obj:
+                print('updated: ' +str(current_user_id) + ':' + str(current_card_id))
+                tracker_obj.vote_score = score
+            else:
+                print('added: ' +str(current_user_id) + ':' + str(current_card_id))
+                db.session.add(Votes(card_id=current_card_id, user_id=current_user_id, vote_score=score))
 
-        db.session.commit()
+            db.session.commit()
 
-        emit('vote_bar_message', {'button_disabled': True, 'current_votes': '', 'last_vote': ''})
+            emit('vote_bar_message', {'button_disabled': True, 'current_votes': '', 'last_vote': ''})
 
     # emit('card_response', {'data': card_im})
 
 
-@socketio.on('connect', namespace='/')
+@socketio.on('connect', namespace='/vote')
 def voter_connect():
     # set the user to voting in the database
     print('login: ' + current_user.username)
@@ -58,6 +59,7 @@ def voter_connect():
     active.voting = True
     db.session.commit()
 
+    card_info.send_card_info()
     # need visibility of the global thread object
     global thread
     #Start the monitoring thread if it hasn't already
@@ -67,14 +69,22 @@ def voter_connect():
         thread.start()
 
 
-@socketio.on('disconnect', namespace='/')
+@socketio.on('disconnect', namespace='/vote')
 def voter_disconnect():
     # set the user to no longer voting in the database
     active = User.query.filter_by(username=current_user.username).first()
     active.voting = False
     db.session.commit()
 
-    print('dissonect: ' + str(current_user.username) + ' ' + str(datetime.datetime.now()))
+    print('disconnect: ' + str(current_user.username) + ' ' + str(datetime.datetime.now()))
+
+@socketio.on('wait_card', namespace='/')
+def wait_change(data):
+    # set the wait_chard bool to the required value
+    if 'wait' in data:
+        card_info.wait_card = data['wait']
+        print('wait_card: ' + str(card_info.wait_card))
+        card_info.change_card()
 
 
 @app.route('/login', methods=['GET', 'POST'])

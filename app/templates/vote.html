@@ -52,7 +52,7 @@
                         <input type="radio" id="rating0" name="rating" value="0" /><label for="rating0" title="No star"></label>
                     </fieldset>
                     <div class="buttons">
-                        <button class="vote_button" id="vote_button" value="vote">Submit</button>
+                        <button class="vote_button" id="vote_button" value="vote" disabled="true">Submit</button>
                         <!-- current vote info -->
                         <span class="current_votes" id="current_votes">0 / 1 votes</span>
                         <span class="last_vote" id="last_vote">last vote: 0 </span>
@@ -88,7 +88,8 @@
         <!-- Scripts -->
 
         <script type="text/javascript" charset="utf-8">
-            var socket = io.connect('http://' + document.domain + ':' + location.port, {user: "{{session.username}}"});
+            // connect to /vote namespace
+            var socket = io.connect('http://' + document.domain + ':' + location.port + '/vote', {user: "{{session.username}}"});
 
             socket.on('card_response', function(data) {
                 console.log(data['data']);

@@ -16,21 +16,12 @@ class Card(db.Model):
     card_image = db.Column(db.String(300))
     card_price = db.Column(db.String(50))
     card_rarity = db.Column(db.String(50))
+
     # relationships
     trackers = relationship("Votes")
     rulings = relationship("Rulings")
     Card_colour = relationship("Card_colour")
     Card_Subtypes = relationship("Card_Subtypes")
-
-    @staticmethod
-    def next_card():
-        current = Card.query.filter_by(current_selected=True).first()
-        current.current_selected = False
-        next_id = current.id + 1
-        next = Card.query.filter_by(id=next_id).first()
-        next.current_selected = True
-        db.session.commit()
-
 
 class User(db.Model, UserMixin):
     __tablename__ = 'User'

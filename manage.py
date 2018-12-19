@@ -4,6 +4,7 @@ __author__ = 'tomli'
 import sys, os
 import scrython
 import requests
+import random
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.path.pardir))
 
 from app import app, db, socketio
@@ -92,8 +93,16 @@ def initdb():
                     db.session.add(Rulings(card_id=card['collector_number'],
                                        ruling=rule['comment']))
 
+
+    # add the wait card
+    db.session.add(Card(name="Wait Card",
+                            card_image='/static/img/a-pause-for-reflection.png',
+                            card_price=None,
+                            card_rarity=None))
+    print('wait card added')
     db.session.commit()
-    start = Card.query.get(1)
+
+    start = Card.query.filter_by(name="Wait Card").first()
     start.current_selected = True
     db.session.commit()
 
@@ -126,10 +135,22 @@ def dropdb():
 
 @manager.command
 def runserver():
-    sql_str = 'SELECT COUNT(card_id) FROM ( SELECT card_id, colour FROM Card_colour GROUP BY card_id HAVING COUNT(card_id) = 1 )AS ONLY_ONCE WHERE ONLY_ONCE.colour = \'{}\''.format('W')
 
-    solo_colour = db.session.execute(sql_str).fetchall()
+    #check csv
+    if True is False:
+        all_cards = Card.query.all()
+        votes_pos = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
 
+        for card in all_cards:
+            card.rating = random.choice(votes_pos)
+            print (card.rating)
+        db.session.commit()
+
+    current = Card.query.filter_by(current_selected=True).first()
+    current.current_selected = False
+    wait_card_selected = Card.query.filter_by(name="Wait Card").first()
+    wait_card_selected.current_selected = True
+    db.session.commit()
 
     all_users = User.query.all()
     for user in all_users:

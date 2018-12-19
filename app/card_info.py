@@ -4,6 +4,10 @@ from app import socketio
 from flask_socketio import emit
 from app.models import Card, User, Votes, Rulings, Card_colour, Card_Subtypes
 from app import app, db
+import csv
+
+
+wait_card = True
 
 
 def get_current_voters():
@@ -27,7 +31,12 @@ def get_current_votes_string():
 
 def send_update_vote_bar( disable_all=None):
     votes = get_current_votes_string()
-    emit('vote_bar_message', {'button_disabled': disable_all, 'current_votes': votes, 'last_vote': ''},  namespace='/', broadcast=True)
+    emit('vote_bar_message', {'button_disabled': disable_all, 'current_votes': votes, 'last_vote': ''},
+                        namespace='/vote', broadcast=True)
+
+
+def send_card_info():
+    emit('card_data_message', get_card_info(),  namespace='/vote', broadcast=True)
 
 
 def get_card_info():
@@ -76,5 +85,54 @@ def get_card_info():
         card_dict['info'][str(subtype.subtype)] = ': 1/' + str(solo_type[0][0])
 
 
-
     return card_dict
+
+
+def change_card():
+    # check if the wait screen is required
+    print(wait_card)
+    if wait_card:
+        current = Card.query.filter_by(current_selected=True).first()
+        current.current_selected = False
+        wait_card_selected = Card.query.filter_by(name="Wait Card").first()
+        wait_card_selected.current_selected = True
+        db.session.commit()
+        send_update_vote_bar(True)
+
+    else:
+        current = Card.query.filter_by(current_selected=True).first()
+        current.current_selected = False
+        next = Card.query.filter_by(rating=None).first()
+        if next is None:
+            # reached the end so output CSV
+            make_CSV()
+        else:
+            if next.name is "Wait Card":
+                make_CSV()
+            next.current_selected = True
+            db.session.commit()
+            send_update_vote_bar(False)
+
+    send_card_info()
+
+
+def make_CSV():
+    # output cards data to local CSV
+    outfile = open('total_votes.csv', 'w', newline='')
+    outcsv = csv.writer(outfile)
+
+    sql_all_cards = 'SELECT * FROM Card'
+    all_cards = db.session.execute(sql_all_cards)
+    print (all_cards.keys())
+    outcsv.writerow(all_cards.keys())
+    # dump rows
+    outcsv.writerows(all_cards.fetchall())
+
+    outfile.close()
+    # set to card waiting forever
+    wait_card_selected = Card.query.filter_by(name="Wait Card").first()
+    wait_card_selected.current_selected = True
+    db.session.commit()
+    wait_card = True
+
+

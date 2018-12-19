@@ -4,7 +4,8 @@ from flask import Flask
 import os
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO
+
 
 basepath = os.path.abspath(os.path.dirname(__file__))
 
@@ -15,10 +16,7 @@ app.config['DEBUG'] = True
 
 db = SQLAlchemy(app)
 
-
-# socket set up for ios
 socketio = SocketIO(app, ping_timeout=5, ping_interval=3)
-
 
 #configure auth
 login_manager = LoginManager()
@@ -28,6 +26,7 @@ login_manager.init_app(app)
 
 from app import routes
 from app.models import User
+
 
 @login_manager.user_loader
 def load_user(id):
