@@ -33,6 +33,7 @@ class MonitorThread(Thread):
                 for user in current_users:
                         user_voters_count += 1
                 print('active_voters_count: ' + str(user_voters_count))
+                card_info.send_update_vote_bar()
 
                 #get tracker count, ensure all votes collected
                 votes_list = Votes.query.filter_by(card_id=current_card.id).all()
@@ -51,7 +52,8 @@ class MonitorThread(Thread):
                     # update to next card
                     card_info.change_card()
 
-
+                card_info.send_user_list()
+                card_info.send_ratings()
                 sleep(self.delay)
 
     def run(self):

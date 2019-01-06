@@ -1,0 +1,188 @@
+<!doctype html>
+<html class="no-js" lang="">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>Snappy Vote</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+        <script>window.jQuery || document.write('<script src="../static/js/vendor/jquery-1.11.2.min.js"><\/script>')</script>
+        <script src="../static/js/main.js"></script>
+        <script src="../static/js/vendor/modernizr-2.8.3-respond-1.4.2.min.js"></script>
+        <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+
+        <script type="text/javascript">
+            $(function(){
+            if( /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent) ) {
+              var ww = ( $(window).width() < window.screen.width ) ? $(window).width() : window.screen.width; //get proper width
+              var mw = 480; // min width of site
+              var ratio =  ww / mw; //calculate ratio
+              if( ww < mw){ //smaller than minimum size
+               $('#Viewport').attr('content', 'initial-scale=' + ratio + ', maximum-scale=' + ratio + ', minimum-scale=' + ratio + ', user-scalable=yes, width=' + ww);
+              }else{ //regular size
+               $('#Viewport').attr('content', 'initial-scale=1.0, maximum-scale=2, minimum-scale=1.0, user-scalable=yes, width=' + ww);
+              }
+            }
+            });
+        </script>
+
+        <!-- get the link to the css -->
+        <link rel="stylesheet" href="../static/css/info.css">
+
+    </head>
+
+    <body>
+    <div class="row">
+        <div class="column">
+            <h1>Stats</h1>
+            <h3>All Cards Rating</h3>
+            <table id="all_cards">
+                <tbody class="tbody_card">
+                    <tr class="header">
+                        <th>Name</th>
+                        <th>Rating</th>
+                        <th>Colour</th>
+                        <th>Rarity</th>
+                    </tr>
+                </tbody>
+            </table>
+            <h3>Cards Rating by Colour</h3>
+            <table id="cards_colour">
+                <tbody class="tbody_card">
+                    <tr class="header">
+                        <th>Name</th>
+                        <th>Rating</th>
+                        <th>Colour</th>
+                        <th>Rarity</th>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="column">
+            <h1>Voter Info</h1>
+            <div class="users" id="users">
+
+            </div>
+        </div>
+        <div class="column">
+            <h1>Card Info</h1>
+            <div class="card_details">
+                <div class="card_image">
+                    <img src={{card_image}} alt="status" id="card_image" class="card_image">
+                </div>
+                <div class="cardinfo" id="cardinfo"></div>
+            </div>
+        </div>
+    </div>
+
+
+        <script type="text/javascript" charset="utf-8">
+            var socket = io.connect('http://' + document.domain + ':' + location.port + '/info');
+
+            // card rankings
+
+            //socket io
+            socket.on('all_card_ratings', function(data) {
+                // remove current list
+                var cards_colour = document.getElementById("cards_colour");
+                var card_tbody = cards_colour.getElementsByTagName("tbody").item(0);
+                var card_row_color = card_tbody.getElementsByClassName("card_row");
+                while (card_row_color[0]) {
+                    card_row_color[0].parentNode.removeChild(card_row_color[0]);
+                }
+
+                var all_cards = document.getElementById("all_cards");
+                var card_tbody_all = all_cards.getElementsByTagName("tbody").item(0);
+                var card_row = card_tbody_all.getElementsByClassName("card_row");
+                while (card_row[0]) {
+                    card_row[0].parentNode.removeChild(card_row[0]);
+                }
+                //console.log('card_info: ' + data['card_ratings']);
+
+                addRow("all_cards",data['card_ratings_color'])
+                addRow("cards_colour",data['card_ratings'])
+
+            });
+
+            function addRow(table,data){
+                if (data.length > 0){
+                    var card_table = document.getElementById(table);
+                    var card_tbody = card_table.getElementsByTagName("tbody").item(0);
+                    for (index = 0, len = data.length; index < len; ++index) {
+                        // add user
+                        //console.log('card: ' + data[index]);
+                        var new_row = document.createElement("tr");
+                        new_row.className = "card_row";
+
+                        // cells
+                            for (cell_index = 0, len_c = 4; cell_index < len_c; ++cell_index){
+                                var new_cell = document.createElement("td");
+                                new_cell.innerHTML = data[index][cell_index];
+                                new_row.appendChild(new_cell);
+                            }
+                        card_tbody.appendChild(new_row);
+                    }
+                }
+            }
+
+            // update user list
+            socket.on('users', function(data) {
+                //remove users from  list to re add
+                var users = document.getElementById("users");
+                var user_elements = users.getElementsByClassName("user");
+                while (user_elements[0]) {
+                    user_elements[0].parentNode.removeChild(user_elements[0]);
+                }
+                // check for new rulings
+                if (data['user'].length > 0){
+                    for (index = 0, len = data['user'].length; index < len; ++index) {
+                        // add user
+                        // console.log('user: ' + data['user'][index]);
+                        if (data['user'][index].includes("-")){
+                            var newuser = document.createElement ("div");
+                            newuser.innerHTML = data['user'][index];
+                            newuser.value = data['user'][index];
+                            newuser.className = "user";
+                            newuser.style.border = "thin blue";
+
+                            users.appendChild (newuser);
+                        }
+                    }
+                }
+            });
+
+            socket.on('card_data_message', function(data) {
+                console.log(data);
+                if (data['card_image'] != '') {
+                    document.getElementById("card_image").src = data['card_image'];
+                }
+
+                // check all card info varients
+                var cardinfo = document.getElementById("cardinfo");
+                var cardinfo_elements = cardinfo.getElementsByClassName("cardinfo_elements");
+                while (cardinfo_elements[0]) {
+                    cardinfo_elements[0].parentNode.removeChild(cardinfo_elements[0]);
+                }
+
+                for (var key in data['info']) {
+                    // check if the property/key is defined in the object itself, not in parent
+                    if (data['info'].hasOwnProperty(key)) {
+                        // add new rules
+                        var newinfo = document.createElement ("div");
+                        newinfo.innerHTML = key + ': ' + data['info'][key];
+                        newinfo.className = "cardinfo_elements";
+                        newinfo.style.border = "thin dotted blue";
+
+                        cardinfo.appendChild (newinfo);
+                    }
+                }
+
+
+
+            });
+
+
+        </script>
+    </body>
+

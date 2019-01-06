@@ -10,6 +10,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.path.pardir))
 from app import app, db, socketio
 from flask_script import Manager, prompt_bool
 from app.models import Card, User, Rulings, Card_colour, Card_Subtypes
+from urllib import request
 
 manager = Manager(app)
 
@@ -28,19 +29,27 @@ def initdb():
         all_cards.extend(get_all_cards(next_set))
 
     db.create_all()
-    #
     # add all cards
     for card in all_cards:
         # get all card attributes required
+        image_url = ''
         print('Adding card: ' + card['name'] + card['collector_number'])
         # get the correct card image format
         if card['layout'] == 'normal' or 'split':
-                image = card['image_uris']['normal'].split("?")[0]
+                image_url = card['image_uris']['normal'].split("?")[0]
         else:
             #transform cards
             if card['layout'] == 'transform':
                 for face in card['card_faces']:
-                    image = face['image_uris']['normal'].split("?")[0]
+                    image_url = face['image_uris']['normal'].split("?")[0]
+
+        card_location_name = card['name']
+        if '/' in card_location_name:
+            card_location_name = card_location_name.replace("/", "")
+        image_loc = '/static/img/cards/' + card_location_name + '.jpg'
+        f = open('D:/Programming/Snappy/app/static/img/cards/' + card_location_name + '.jpg', 'wb+')
+        f.write(request.urlopen(str(image_url)).read())
+        f.close()
 
         #card price
         if "usd" in card:
@@ -52,12 +61,21 @@ def initdb():
         card_rarity = card['rarity']
 
         # potential card analysis here
-
+        # card colour
+        card_color = ''
+        if card['colors'] is not None:
+            if len(card['colors']) == 0:
+                card_color = 'colourless'
+            elif len(card['colors']) > 1:
+                card_color = 'multi-colour'
+            else:
+                card_color = card['colors'][0]
         # add the card to the database
         db.session.add(Card(name=card['name'],
-                            card_image=image,
+                            card_image=image_loc,
                             card_price=card_price,
-                            card_rarity=card_rarity))
+                            card_rarity=card_rarity,
+                            card_color=card_color))
 
         # card colour(s) to table
         if card['colors'] is not None:
@@ -72,6 +90,7 @@ def initdb():
                     db.session.add(Card_colour(card_id=card['collector_number'],
                                        colour=colour))
 
+
         # card sub types -
         #check for sub types
         if '—' in card['type_line']:
@@ -80,7 +99,7 @@ def initdb():
             for sub in suptypes:
                 # add to the db
                 if sub is not '':
-                    print(sub)
+                    # print(sub)
                     db.session.add(Card_Subtypes(card_id=card['collector_number'],
                                            subtype=sub.strip()))
 
@@ -108,7 +127,7 @@ def initdb():
 
     #add the users
     db.session.add(User(username='tom'))
-    db.session.add(User(username='bobtheadmin'))
+    db.session.add(User(username='bobtheadmin', admin=True))
     db.session.add(User(username='julie'))
     db.session.commit()
 
@@ -137,13 +156,14 @@ def dropdb():
 def runserver():
 
     #check csv
-    if True is False:
+    if True is True:
         all_cards = Card.query.all()
-        votes_pos = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
+        votes_pos = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, None]
 
         for card in all_cards:
             card.rating = random.choice(votes_pos)
-            print (card.rating)
+            # card.rating = None
+            # print (card.rating)
         db.session.commit()
 
     current = Card.query.filter_by(current_selected=True).first()

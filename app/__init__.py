@@ -7,6 +7,7 @@ from flask_login import LoginManager
 from flask_socketio import SocketIO
 
 
+
 basepath = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)

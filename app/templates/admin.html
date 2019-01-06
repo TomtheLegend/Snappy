@@ -1,0 +1,115 @@
+<!doctype html>
+<html class="no-js" lang="">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>Snappy Vote</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+        <script>window.jQuery || document.write('<script src="../static/js/vendor/jquery-1.11.2.min.js"><\/script>')</script>
+        <script src="../static/js/main.js"></script>
+        <script src="../static/js/vendor/modernizr-2.8.3-respond-1.4.2.min.js"></script>
+        <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+
+        <script type="text/javascript">
+            $(function(){
+            if( /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent) ) {
+              var ww = ( $(window).width() < window.screen.width ) ? $(window).width() : window.screen.width; //get proper width
+              var mw = 480; // min width of site
+              var ratio =  ww / mw; //calculate ratio
+              if( ww < mw){ //smaller than minimum size
+               $('#Viewport').attr('content', 'initial-scale=' + ratio + ', maximum-scale=' + ratio + ', minimum-scale=' + ratio + ', user-scalable=yes, width=' + ww);
+              }else{ //regular size
+               $('#Viewport').attr('content', 'initial-scale=1.0, maximum-scale=2, minimum-scale=1.0, user-scalable=yes, width=' + ww);
+              }
+            }
+            });
+        </script>
+
+        <!-- get the link to the css -->
+        <link rel="stylesheet" href="../static/css/admin.css">
+
+    </head>
+
+    <body>
+    <div class="row">
+        <div class="column">
+            <input class="wait_bool" id="wait_bool" type="checkbox" onclick="toggleCheckBox(this)" checked="checked">Wait Card Active<br>
+            <button class="button" id="re-vote-c" type="button">Re-vote Current card</button>
+            <button class="button" id="re-vote-p" type="button">Re-vote Previous Card</button>
+             <input type="text" name="id" id="id" value=""><br>
+            <button class="button" id="re-vote-id" type="button">Re-vote with Card id</button>
+        </div>
+        <div class="column">
+            <select class="users" name="users" id="users" size="10" multiple>
+            </select>
+                <button class="button" id="del_user" type="button">Delete user</button>
+                <button class="button" id="add_user" type="button">Add user</button>
+                <input type="text" name="username" id="username" value=""><br>
+        </div>
+    </div>
+
+
+        <script type="text/javascript" charset="utf-8">
+            var socket = io.connect('http://' + document.domain + ':' + location.port + '/admin');
+
+            function toggleCheckBox(element) {
+                var check = document.getElementById("wait_bool").checked;
+                console.log('check changed' + check);
+                socket.emit('wait_card', {wait: check});
+            };
+
+             document.getElementById("add_user").onclick = function () {
+                var user = document.getElementById("username").value;
+                console.log('newuser ' + user);
+                socket.emit('add_user', user);
+            };
+
+            document.getElementById("del_user").onclick = function () {
+                var strUser = document.getElementById("users").value;
+                //var strUser = user.options[user.selectedIndex].value;
+                console.log('deluser ' + strUser);
+                socket.emit('del_user', strUser);
+            };
+
+            document.getElementById("re-vote-c").onclick = function () {
+                socket.emit('re-vote', 'current');
+            };
+
+            document.getElementById("re-vote-p").onclick = function () {
+                socket.emit('re-vote', 'previous');
+            };
+
+            document.getElementById("re-vote-id").onclick = function () {
+                var id = document.getElementById("id").value;
+                socket.emit('re-vote', id);
+            };
+
+            // update user list
+            socket.on('users', function(data) {
+                // remove users from  list to re add
+                var users = document.getElementById("users");
+                var user_elements = users.getElementsByClassName("user");
+                while (user_elements[0]) {
+                    user_elements[0].parentNode.removeChild(user_elements[0]);
+                }
+                // check for new rulings
+                if (data['user'].length > 0){
+                    for (index = 0, len = data['user'].length; index < len; ++index) {
+                        // add user
+                        var newuser = document.createElement ("option");
+                        newuser.innerHTML = data['user'][index];
+                        newuser.value = data['user'][index];
+                        newuser.className = "user";
+                        newuser.style.border = "thin dotted blue";
+
+                        users.appendChild (newuser);
+
+                    }
+                }
+            });
+
+        </script>
+    </body>
+

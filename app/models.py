@@ -16,6 +16,8 @@ class Card(db.Model):
     card_image = db.Column(db.String(300))
     card_price = db.Column(db.String(50))
     card_rarity = db.Column(db.String(50))
+    card_color = db.Column(db.String(50), default="")
+    time_taken = db.Column(db.String(50))
 
     # relationships
     trackers = relationship("Votes")
@@ -29,6 +31,7 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(200), unique=True)
     voting = db.Column(db.Boolean, default=False)
     logged_in = db.Column(db.Boolean, default=False)
+    admin = db.Column(db.Boolean, default=False)
     tracker = relationship("Votes")
 
 class Votes(db.Model):

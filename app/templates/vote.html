@@ -111,7 +111,7 @@
                 }
             });
 
-            socket.on('card_data_message', function(data) {
+             socket.on('card_data_message', function(data) {
                 console.log(data);
                 if (data['card_image'] != '') {
                     document.getElementById("card_image").src = data['card_image'];
@@ -139,7 +139,7 @@
 
                 // check all card info varients
                 var cardinfo = document.getElementById("cardinfo");
-                var cardinfo_elements = cardinfo.getElementsByClassName("cardinfo_elements");
+                var cardinfo_elements = cardinfo.getElementsByClassName("cardinfo");
                 while (cardinfo_elements[0]) {
                     cardinfo_elements[0].parentNode.removeChild(cardinfo_elements[0]);
                 }

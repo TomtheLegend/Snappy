@@ -36,7 +36,9 @@ def send_update_vote_bar( disable_all=None):
 
 
 def send_card_info():
-    emit('card_data_message', get_card_info(),  namespace='/vote', broadcast=True)
+    card_info = get_card_info()
+    emit('card_data_message', card_info, namespace='/vote', broadcast=True)
+    emit('card_data_message', card_info, namespace='/info', broadcast=True)
 
 
 def get_card_info():
@@ -72,7 +74,7 @@ def get_card_info():
                   'INNER JOIN Card ON Card_colour.card_id=Card.id GROUP BY Card_colour.card_id HAVING COUNT(Card_colour.card_id) = 1 )AS ONLY_ONCE' \
                   ' WHERE ONLY_ONCE.colour = \'{}\' AND ONLY_ONCE.card_rarity = \'{}\''.format(str(colour.colour), current_card.card_rarity)
         solo_colour_rarity = db.session.execute(sql_rariry_str).fetchall()
-        card_dict['info'][str(colour.colour)+':'+str(current_card.card_rarity)] = '- 1/' + str(solo_colour_rarity[0][0])
+        card_dict['info'][str(colour.colour)+':'+str(current_card.card_rarity)] = ' 1/' + str(solo_colour_rarity[0][0])
 
 
     #card sup types total
@@ -81,8 +83,8 @@ def get_card_info():
         sql_subtype_str = 'SELECT COUNT(card_id) FROM' \
                           ' Card_Subtypes WHERE Card_Subtypes.subtype = \'{}\''.format(str(subtype.subtype))
         solo_type = db.session.execute(sql_subtype_str).fetchall()
-        print (solo_type)
-        card_dict['info'][str(subtype.subtype)] = ': 1/' + str(solo_type[0][0])
+        # print (solo_type)
+        card_dict['info'][str(subtype.subtype)] = ' 1/' + str(solo_type[0][0])
 
 
     return card_dict
@@ -90,14 +92,13 @@ def get_card_info():
 
 def change_card():
     # check if the wait screen is required
-    print(wait_card)
     if wait_card:
         current = Card.query.filter_by(current_selected=True).first()
         current.current_selected = False
         wait_card_selected = Card.query.filter_by(name="Wait Card").first()
         wait_card_selected.current_selected = True
         db.session.commit()
-        send_update_vote_bar(True)
+        #send_update_vote_bar(True)
 
     else:
         current = Card.query.filter_by(current_selected=True).first()
@@ -111,10 +112,10 @@ def change_card():
                 make_CSV()
             next.current_selected = True
             db.session.commit()
-            send_update_vote_bar(False)
+            #send_update_vote_bar(False)
 
     send_card_info()
-
+    send_update_vote_bar(wait_card)
 
 def make_CSV():
     # output cards data to local CSV
@@ -136,3 +137,63 @@ def make_CSV():
     wait_card = True
 
 
+def send_user_list():
+    users = User.query.all()
+    list_users = []
+    for user in users:
+        user_str = user.username
+        # print(user.username + '-' + str(user.voting))
+        if user.voting:
+            user_str += ' - Voter'
+
+        list_users.append(user_str)
+
+    data = {'user': list_users}
+    emit('users', data, namespace='/admin', broadcast=True)
+    emit('users', data, namespace='/info', broadcast=True)
+
+def reset_votes(id):
+    Votes.query.filter_by(id=id).delete()
+    card = Card.query.filter_by(id=id).first()
+    card.rating = None
+    db.session.commit()
+
+def re_vote(id):
+    if id == 'current':
+        current = Card.query.filter_by(current_selected=True).first()
+        reset_votes(current.id)
+    elif id == 'previous':
+        current = Card.query.filter_by(current_selected=True).first()
+        previous = current.id - 1
+        if previous > 0:
+            previous_card = Card.query.filter_by(id=previous).first()
+            reset_votes(previous_card.id)
+    else:
+        reset_votes(id)
+
+
+def send_ratings():
+    # top 10 higest rated cards
+    # name, rating, colour, rarity
+    print('send_ratings')
+    sql_card_rating_str = 'SELECT name, rating, card_color, card_rarity FROM' \
+                          ' Card ORDER BY rating DESC LIMIT 10'
+    card_ratings_db = db.session.execute(sql_card_rating_str).fetchall()
+    card_ratings = []
+    for card_all in card_ratings_db:
+        card_ratings.append(list(card_all))
+
+    current = Card.query.filter_by(current_selected=True).first()
+    sql_card_rating_colour_str = 'SELECT name, rating, card_color, card_rarity FROM' \
+                          ' Card WHERE card_color=  \'{}\' ' \
+                          'ORDER BY rating DESC LIMIT 10'.format(current.card_color)
+    card_ratings_color_db = db.session.execute(sql_card_rating_colour_str).fetchall()
+
+    card_ratings_color = []
+    for card_all_c in card_ratings_color_db:
+        card_ratings_color.append(list(card_all_c))
+
+    all_card_ratings = {'card_ratings': card_ratings, 'card_ratings_color': card_ratings_color}
+
+    print(card_ratings)
+    emit('all_card_ratings', all_card_ratings, namespace='/info', broadcast=True)

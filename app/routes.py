@@ -14,7 +14,16 @@ from sqlalchemy import and_, exists
 
 @app.route('/')
 @app.route('/index')
+@login_required
 def index():
+    # need visibility of the global thread object
+    global thread
+    #Start the monitoring thread if it hasn't already
+    if not thread.isAlive():
+        print("Starting Thread")
+        thread = MonitorThread()
+        thread.start()
+
     return render_template('index.html')
 
 
@@ -26,6 +35,48 @@ def vote():
     return render_template('vote.html', card_image=card_im)
 
 
+@app.route('/info', methods=['GET', 'POST'])
+def info():
+    # Card.next_card()
+    return render_template('info.html')
+
+
+@app.route('/admin', methods=['GET', 'POST'])
+@login_required
+def admin():
+    print(current_user.is_authenticated)
+    print(current_user.admin)
+    if current_user.admin:
+    # Card.next_card()
+        return render_template('admin.html')
+    else:
+        return render_template('index.html')
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    form = LoginForm()
+    if form.validate_on_submit():
+        # validate the user
+        user = User.query.filter_by(username=form.username.data).first()
+        if user is not None:
+            if user.logged_in is False:
+                login_user(user)
+                user.logged_in = True
+                db.session.commit()
+                flash("login Success")
+                return redirect(request.args.get('next') or url_for('index'))
+            return render_template('login.html', form=form)
+        return render_template('login.html', form=form)
+    return render_template('login.html', form=form)
+
+######################
+## Socket io checks ##
+######################
+
+### vote ###
 @socketio.on('score', namespace='/vote')
 def score_recived(data):
     # handle the sent
@@ -60,13 +111,6 @@ def voter_connect():
     db.session.commit()
 
     card_info.send_card_info()
-    # need visibility of the global thread object
-    global thread
-    #Start the monitoring thread if it hasn't already
-    if not thread.isAlive():
-        print("Starting Thread")
-        thread = MonitorThread()
-        thread.start()
 
 
 @socketio.on('disconnect', namespace='/vote')
@@ -78,32 +122,39 @@ def voter_disconnect():
 
     print('disconnect: ' + str(current_user.username) + ' ' + str(datetime.datetime.now()))
 
-@socketio.on('wait_card', namespace='/')
+
+### admin ###
+@socketio.on('wait_card', namespace='/admin')
 def wait_change(data):
-    # set the wait_chard bool to the required value
+    # set the wait_card bool to the required value
+    # and change the card
     if 'wait' in data:
         card_info.wait_card = data['wait']
         print('wait_card: ' + str(card_info.wait_card))
         card_info.change_card()
 
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-    form = LoginForm()
-    if form.validate_on_submit():
-        # validate the user
-        user = User.query.filter_by(username=form.username.data).first()
-        print(user.logged_in)
-        if user is not None:
-            if user.logged_in is False:
-                login_user(user)
-                user.logged_in = True
-                db.session.commit()
-                flash("login Success")
-                return redirect(request.args.get('next') or url_for('index'))
-        flash("Incorrect Username")
-    return render_template('login.html', form=form)
+@socketio.on('add_user', namespace='/admin')
+def add_user(username):
+    user_name = username
+    user_exists = User.query.filter_by(username=user_name).first()
+    if user_exists is None:
+        print('adding - ' + user_name)
+        db.session.add(User(username=user_name))
+        db.session.commit()
+        card_info.send_user_list()
+
+@socketio.on('del_user', namespace='/admin')
+def del_user(username):
+    user_name = username
+    if '-' in user_name:
+        user_name = user_name.split('-')[0].strip()
+    user_exists = User.query.filter_by(username=user_name).first()
+    User.query.filter_by(id=user_exists.id).delete()
+    db.session.commit()
+    card_info.send_user_list()
 
 
+@socketio.on('re-vote', namespace='/admin')
+def re_vote(data):
+    card_info.re_vote(data)
