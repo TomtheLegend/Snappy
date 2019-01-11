@@ -160,6 +160,12 @@ nav a:hover {
    Author's custom styles
    ========================================================================== */
 
+table, th, td{
+  border: 2px solid #3A559A;
+  border-collapse: collapse;
+  font: 22px Helvetica, Helvetica Neue, Arial;
+}
+
 
 .column {
   float: left;
@@ -171,10 +177,11 @@ nav a:hover {
     border-radius: 16px;
 }
 
-.users{
+.User_info_border{
     border: 3px solid #3A559A;
     border-radius: 16px;
 }
+
 
 /* ==========================================================================
    Media Queries

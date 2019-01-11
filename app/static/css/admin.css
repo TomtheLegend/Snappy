@@ -173,9 +173,16 @@ nav a:hover {
 
 }
 
+input[type=checkbox]
+{
+    -moz-transform: scale(5,5); /* FF */
+    padding: 5%;
+    margin: 5%
+}
+
 .wait_bool{
-    width: 80px;
-    height: 80px;
+    width: 100px;
+    height: 100px;
 }
 
 .column {

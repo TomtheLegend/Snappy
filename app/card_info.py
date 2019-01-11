@@ -175,7 +175,7 @@ def re_vote(id):
 def send_ratings():
     # top 10 higest rated cards
     # name, rating, colour, rarity
-    print('send_ratings')
+    # print('send_ratings')
     sql_card_rating_str = 'SELECT name, rating, card_color, card_rarity FROM' \
                           ' Card ORDER BY rating DESC LIMIT 10'
     card_ratings_db = db.session.execute(sql_card_rating_str).fetchall()
@@ -195,5 +195,35 @@ def send_ratings():
 
     all_card_ratings = {'card_ratings': card_ratings, 'card_ratings_color': card_ratings_color}
 
-    print(card_ratings)
+    # print(card_ratings)
     emit('all_card_ratings', all_card_ratings, namespace='/info', broadcast=True)
+
+
+def send_pervious_voted():
+    # get the previous card. the last voted on card? if card not none rating sort desc?
+    current = Card.query.filter_by(current_selected=True).first()
+
+
+
+    sql_prev_card_str = 'SELECT id, name, rating, card_color, card_rarity FROM' \
+                          ' Card WHERE rating IS NOT NULL ORDER BY id DESC'
+    prev_card_db = db.session.execute(sql_prev_card_str).first()
+    if prev_card_db:
+
+        if prev_card_db:
+            all_votes_sql = 'SELECT User.username, Votes.vote_score FROM Votes ' \
+                      'INNER JOIN User ON User.id=Votes.user_id WHERE Votes.card_id = \'{}\''.format(prev_card_db[0])
+            prev_card_votes_db = db.session.execute(all_votes_sql).fetchall()
+            # print(prev_card_votes_db)
+        card_ratings = []
+        for card_all_prev in prev_card_votes_db:
+            prev_list = list(card_all_prev)
+            prev_list[1] = prev_list[1]/2
+            card_ratings.append(prev_list)
+        #get the card name and its vote, other info?
+
+        # prev_votes = [[]]
+        # prev_card_info = []
+        previous_card_data = {'prev_card_info': [list(prev_card_db)], 'prev_card_votes':  card_ratings}
+        # print (previous_card_data)
+        emit('previous_card', previous_card_data, namespace='/info', broadcast=True)

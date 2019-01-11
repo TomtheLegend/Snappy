@@ -38,18 +38,22 @@
             <input class="wait_bool" id="wait_bool" type="checkbox" onclick="toggleCheckBox(this)" checked="checked">Wait Card Active<br>
             <button class="button" id="re-vote-c" type="button">Re-vote Current card</button>
             <button class="button" id="re-vote-p" type="button">Re-vote Previous Card</button>
-             <input type="text" name="id" id="id" value=""><br>
+            <input type="text" name="id" id="id" value=""><br>
             <button class="button" id="re-vote-id" type="button">Re-vote with Card id</button>
+            <button class="button" id="enable_vote_buttons" type="button">Enable vote buttons</button>
+
         </div>
         <div class="column">
             <select class="users" name="users" id="users" size="10" multiple>
             </select>
-                <button class="button" id="del_user" type="button">Delete user</button>
-                <button class="button" id="add_user" type="button">Add user</button>
-                <input type="text" name="username" id="username" value=""><br>
+            <button class="button" id="del_user" type="button">Delete user</button>
+            <button class="button" id="remove_voter" type="button">Remove Voter</button>
+            <input type="text" name="username" id="username" value=""><br>
+            <button class="button" id="add_user" type="button">Add user</button>
+
+
         </div>
     </div>
-
 
         <script type="text/javascript" charset="utf-8">
             var socket = io.connect('http://' + document.domain + ':' + location.port + '/admin');
@@ -71,6 +75,17 @@
                 //var strUser = user.options[user.selectedIndex].value;
                 console.log('deluser ' + strUser);
                 socket.emit('del_user', strUser);
+            };
+
+            document.getElementById("remove_voter").onclick = function () {
+                var strUser = document.getElementById("users").value;
+                //var strUser = user.options[user.selectedIndex].value;
+                console.log('remove_voter ' + strUser);
+                socket.emit('remove_voter', strUser);
+            };
+
+            document.getElementById("enable_vote_buttons").onclick = function () {
+                socket.emit('enable_vote_buttons');
             };
 
             document.getElementById("re-vote-c").onclick = function () {

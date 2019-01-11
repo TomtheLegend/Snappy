@@ -175,3 +175,8 @@ label:hover ~ input:checked ~ label /* highlight previous selected stars */ { co
 .summary {
   border: 10px solid #5499C7;
 }
+
+
+.lsv{
+    border: thin dotted blue;
+}

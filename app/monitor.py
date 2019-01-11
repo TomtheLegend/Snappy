@@ -45,7 +45,7 @@ class MonitorThread(Thread):
                         average_vote += int(vote.vote_score)
 
                     # add all votes together, divide by user number and half for stars
-                    average_vote = (average_vote / len(votes_list)) / 2
+                    average_vote = round((((average_vote / len(votes_list)) / 2)*2)/2)
                     current_card.rating = average_vote
                     db.session.commit()
 
@@ -54,6 +54,7 @@ class MonitorThread(Thread):
 
                 card_info.send_user_list()
                 card_info.send_ratings()
+                card_info.send_pervious_voted()
                 sleep(self.delay)
 
     def run(self):

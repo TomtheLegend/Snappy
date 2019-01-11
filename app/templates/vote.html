@@ -55,7 +55,7 @@
                         <button class="vote_button" id="vote_button" value="vote" disabled="true">Submit</button>
                         <!-- current vote info -->
                         <span class="current_votes" id="current_votes">0 / 1 votes</span>
-                        <span class="last_vote" id="last_vote">last vote: 0 </span>
+                        <!-- <span class="last_vote" id="last_vote" >last vote: 0 </span> -->
                     </div>
 
             </form>
@@ -83,6 +83,24 @@
             </div>
         </details>
 
+
+        <!-- LSV Rating system -->
+        <details>
+            <summary class="summary">Rating System</summary>
+            <div>
+                <div class='lsv'>5.0: The best of the best. (Bolas’s Clutches. Icy Manipulator. Lyra Dawnbringer.)</div>
+                <div class='lsv'>4.5: Incredible bomb, but not unbeatable. (Josu Vess, Lich Knight. Tatyova, Benthic Druid. Slimefoot the Stowaway.)</div>
+                <div class='lsv'>4.0: Good rare or top-tier uncommon. (Cast Down. Time of Ice. Adeliz, the Cinder Wind.)</div>
+                <div class='lsv'>3.5: Top-tier common or solid uncommon. (Vicious Offering. Blessed Light. Shivan Fire.)</div>
+                <div class='lsv'>3.0: Good playable that basically always makes the cut. (Cloudreader Sphinx. Caligo Skin-Witch. Grow from the Ashes.)</div>
+                <div class='lsv'>2.5: Solid playable that rarely gets cut. (Fungal Infection. Academy Journeymage. Mammoth Spider.)</div>
+                <div class='lsv'>2.0: Good filler, but sometimes gets cut. (Krosan Druid. Soul Salvage. Ghitu Journeymage.)</div>
+                <div class='lsv'>1.5: Filler. Gets cut about half the time. (Relic Runner. Ancient Animus. Deep Freeze.)</div>
+                <div class='lsv'>1.0: Bad filler. Gets cut most of the time. (Divest. Homarid Explorer. Arbor Armament.)</div>
+                <div class='lsv'>0.5: Very low-end playables and sideboard material. (Rescue. Cabal Evangel. Drudge Sentinel.)</div>
+                <div class='lsv'>0.0: Completely unplayable. (Kamahl’s Druidic Vow. One with Nothing.)</div>
+            </div>
+        </details>
 
 
         <!-- Scripts -->
@@ -139,7 +157,7 @@
 
                 // check all card info varients
                 var cardinfo = document.getElementById("cardinfo");
-                var cardinfo_elements = cardinfo.getElementsByClassName("cardinfo");
+                var cardinfo_elements = cardinfo.getElementsByClassName("cardinfo_elements");
                 while (cardinfo_elements[0]) {
                     cardinfo_elements[0].parentNode.removeChild(cardinfo_elements[0]);
                 }

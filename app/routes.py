@@ -110,6 +110,13 @@ def voter_connect():
     active.voting = True
     db.session.commit()
 
+    global thread
+    #Start the monitoring thread if it hasn't already
+    if not thread.isAlive():
+        print("Starting Thread")
+        thread = MonitorThread()
+        thread.start()
+
     card_info.send_card_info()
 
 
@@ -158,3 +165,14 @@ def del_user(username):
 @socketio.on('re-vote', namespace='/admin')
 def re_vote(data):
     card_info.re_vote(data)
+
+@socketio.on('enable_vote_buttons', namespace='/admin')
+def re_vote(data):
+    card_info.send_update_vote_bar(False)
+
+@socketio.on('remove_voter', namespace='/admin')
+def re_vote(data):
+    active = User.query.filter_by(username=data).first()
+    active.voting = True
+    db.session.commit()
+

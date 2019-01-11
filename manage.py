@@ -16,7 +16,7 @@ manager = Manager(app)
 
 scryfall_String = 'https://api.scryfall.com/cards/search?q=set:grn%20order:color'
 
-set_code = 'grn'
+set_code = 'rna'
 
 @manager.command
 def initdb():
@@ -46,6 +46,13 @@ def initdb():
         card_location_name = card['name']
         if '/' in card_location_name:
             card_location_name = card_location_name.replace("/", "")
+        if '%' in card_location_name:
+            card_location_name = card_location_name.replace("%", "")
+        if '&' in card_location_name:
+            card_location_name = card_location_name.replace("&", "")
+        if '\"' in card_location_name:
+            card_location_name = card_location_name.replace("\"", "")
+
         image_loc = '/static/img/cards/' + card_location_name + '.jpg'
         f = open('D:/Programming/Snappy/app/static/img/cards/' + card_location_name + '.jpg', 'wb+')
         f.write(request.urlopen(str(image_url)).read())
@@ -155,14 +162,14 @@ def dropdb():
 @manager.command
 def runserver():
 
-    #check csv
-    if True is True:
+    # check csv
+    if True is False:
         all_cards = Card.query.all()
         votes_pos = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, None]
 
         for card in all_cards:
             card.rating = random.choice(votes_pos)
-            # card.rating = None
+            card.rating = None
             # print (card.rating)
         db.session.commit()
 
@@ -180,7 +187,7 @@ def runserver():
         print(user.logged_in)
     db.session.commit()
 
-    socketio.run(app, host='192.168.0.2')
+    socketio.run(app, host='192.168.0.194')
 
 if __name__ == '__main__':
     manager.run()

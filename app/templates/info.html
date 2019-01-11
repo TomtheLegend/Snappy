@@ -36,41 +36,70 @@
     <div class="row">
         <div class="column">
             <h1>Stats</h1>
-            <h3>All Cards Rating</h3>
-            <table id="all_cards">
-                <tbody class="tbody_card">
-                    <tr class="header">
-                        <th>Name</th>
-                        <th>Rating</th>
-                        <th>Colour</th>
-                        <th>Rarity</th>
-                    </tr>
-                </tbody>
-            </table>
-            <h3>Cards Rating by Colour</h3>
-            <table id="cards_colour">
-                <tbody class="tbody_card">
-                    <tr class="header">
-                        <th>Name</th>
-                        <th>Rating</th>
-                        <th>Colour</th>
-                        <th>Rarity</th>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="User_info_border">
+                <h3>All Cards Rating</h3>
+                <table id="all_cards">
+                    <tbody class="tbody_card">
+                        <tr class="header">
+                            <th>Name</th>
+                            <th>Rating</th>
+                            <th>Colour</th>
+                            <th>Rarity</th>
+                        </tr>
+                    </tbody>
+                </table>
+                <h3>Cards Rating by Colour</h3>
+                <table id="cards_colour">
+                    <tbody class="tbody_card">
+                        <tr class="header">
+                            <th>Name</th>
+                            <th>Rating</th>
+                            <th>Colour</th>
+                            <th>Rarity</th>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
         <div class="column">
             <h1>Voter Info</h1>
-            <div class="users" id="users">
+            <div class="User_info_border">
+                <h3>Users Who are Voting</h3>
+                <div class="users" id="users">
 
+                </div>
+            </div>
+            <div class="User_info_border">
+                <h2>Previous Card Stats</h2>
+                <h3>Previous Card Rating Info</h3>
+                <table id="prev_card">
+                    <tbody class="tbody_card">
+                        <tr class="header">
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Rating</th>
+                            <th>Colour</th>
+                            <th>Rarity</th>
+                        </tr>
+                    </tbody>
+                </table>
+                <h3>Previous Card Voting Info</h3>
+                <table id="prev_card_votes">
+                    <tbody class="tbody_card">
+                        <tr class="header">
+                            <th>User Name</th>
+                            <th>Rating</th>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
         <div class="column">
             <h1>Card Info</h1>
-            <div class="card_details">
-                <div class="card_image">
-                    <img src={{card_image}} alt="status" id="card_image" class="card_image">
-                </div>
+            <div class="card_image">
+                <img src={{card_image}} alt="status" id="card_image" class="card_image">
+            </div>
+             <div class="card_details">
                 <div class="cardinfo" id="cardinfo"></div>
             </div>
         </div>
@@ -100,10 +129,36 @@
                 }
                 //console.log('card_info: ' + data['card_ratings']);
 
-                addRow("all_cards",data['card_ratings_color'])
-                addRow("cards_colour",data['card_ratings'])
+                addRow("all_cards",data['card_ratings'])
+                addRow("cards_colour",data['card_ratings_color'])
 
             });
+
+
+            socket.on('previous_card', function(data) {
+                // remove current list
+                var cards_colour = document.getElementById("prev_card");
+                var card_tbody = cards_colour.getElementsByTagName("tbody").item(0);
+                var card_row_color = card_tbody.getElementsByClassName("card_row");
+                while (card_row_color[0]) {
+                    card_row_color[0].parentNode.removeChild(card_row_color[0]);
+                }
+
+                var all_cards = document.getElementById("prev_card_votes");
+                var card_tbody_all = all_cards.getElementsByTagName("tbody").item(0);
+                var card_row = card_tbody_all.getElementsByClassName("card_row");
+                while (card_row[0]) {
+                    card_row[0].parentNode.removeChild(card_row[0]);
+                }
+                //console.log('card_info: ' + data['card_ratings']);
+
+                addRow("prev_card",data['prev_card_info'])
+                addRow("prev_card_votes",data['prev_card_votes'])
+
+            });
+
+
+
 
             function addRow(table,data){
                 if (data.length > 0){
@@ -116,7 +171,7 @@
                         new_row.className = "card_row";
 
                         // cells
-                            for (cell_index = 0, len_c = 4; cell_index < len_c; ++cell_index){
+                            for (cell_index = 0, len_c = data[index].length; cell_index < len_c; ++cell_index){
                                 var new_cell = document.createElement("td");
                                 new_cell.innerHTML = data[index][cell_index];
                                 new_row.appendChild(new_cell);
