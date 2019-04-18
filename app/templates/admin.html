@@ -78,8 +78,8 @@
             };
 
             document.getElementById("remove_voter").onclick = function () {
-                var strUser = document.getElementById("users").value;
-                //var strUser = user.options[user.selectedIndex].value;
+                //var strUser = document.getElementById("users").value;
+                var strUser = user.options[user.selectedIndex].value;
                 console.log('remove_voter ' + strUser);
                 socket.emit('remove_voter', strUser);
             };

@@ -5,9 +5,10 @@ from flask_socketio import emit
 from app.models import Card, User, Votes, Rulings, Card_colour, Card_Subtypes
 from app import app, db
 import csv
-
+import json
 
 wait_card = True
+wait_colour = None
 
 
 def get_current_voters():
@@ -74,7 +75,7 @@ def get_card_info():
                   'INNER JOIN Card ON Card_colour.card_id=Card.id GROUP BY Card_colour.card_id HAVING COUNT(Card_colour.card_id) = 1 )AS ONLY_ONCE' \
                   ' WHERE ONLY_ONCE.colour = \'{}\' AND ONLY_ONCE.card_rarity = \'{}\''.format(str(colour.colour), current_card.card_rarity)
         solo_colour_rarity = db.session.execute(sql_rariry_str).fetchall()
-        card_dict['info'][str(colour.colour)+':'+str(current_card.card_rarity)] = ' 1/' + str(solo_colour_rarity[0][0])
+        card_dict['info'][str(colour.colour)+':'+str(current_card.card_rarity)] = ' ' + str(solo_colour_rarity[0][0])
 
 
     #card sup types total
@@ -84,16 +85,44 @@ def get_card_info():
                           ' Card_Subtypes WHERE Card_Subtypes.subtype = \'{}\''.format(str(subtype.subtype))
         solo_type = db.session.execute(sql_subtype_str).fetchall()
         # print (solo_type)
-        card_dict['info'][str(subtype.subtype)] = ' 1/' + str(solo_type[0][0])
+        card_dict['info'][str(subtype.subtype)] = ' ' + str(solo_type[0][0])
 
+
+    #card average power / toughness
+    average_data = load_json()
+    if current_card.card_cmc is not None:
+        card_dict['info']['Average Power: CMC ' + str(current_card.card_cmc)] = ' ' + str(average_data['average_power'][current_card.card_cmc][current_card.card_rarity])
+        card_dict['info']['Average Toughness: CMC ' + str(current_card.card_cmc)] = ' ' + str(average_data['average_toughness'][current_card.card_cmc][current_card.card_rarity])
 
     return card_dict
 
 
 def change_card():
+    # set wait_colour to none as default
+    wait_colour = None
+    # check if colour changing, if so select the wait card.
+    current = Card.query.filter_by(current_selected=True).first()
+    next = Card.query.filter_by(rating=None).first()
+    # check for no colour to see if its a wait card.
+    print ('Card_change ' +current.card_color + ' : '+ next.card_color)
+    if current.card_color is not next.card_color:
+        print('colours differ')
+        if next.card_color is not "":
+            print('no colour next')
+            wait_colour = current.card_color
+
+    if wait_colour:
+        #change to the relevant wait card for the colour
+        print('load wait card')
+        card_name = 'Wait Card {}'.format(wait_colour)
+        current.current_selected = False
+        colour_wait_card_selected = Card.query.filter_by(name=card_name).first()
+        colour_wait_card_selected.current_selected = True
+        db.session.commit()
+
     # check if the wait screen is required
-    if wait_card:
-        current = Card.query.filter_by(current_selected=True).first()
+    elif wait_card:
+
         current.current_selected = False
         wait_card_selected = Card.query.filter_by(name="Wait Card").first()
         wait_card_selected.current_selected = True
@@ -101,9 +130,8 @@ def change_card():
         #send_update_vote_bar(True)
 
     else:
-        current = Card.query.filter_by(current_selected=True).first()
         current.current_selected = False
-        next = Card.query.filter_by(rating=None).first()
+
         if next is None:
             # reached the end so output CSV
             make_CSV()
@@ -116,6 +144,7 @@ def change_card():
 
     send_card_info()
     send_update_vote_bar(wait_card)
+
 
 def make_CSV():
     # output cards data to local CSV
@@ -130,6 +159,12 @@ def make_CSV():
     outcsv.writerows(all_cards.fetchall())
 
     outfile.close()
+
+    #todo all data. per voter new sheet per voter.
+    # list of users
+    # loop through votes table per user?
+
+
     # set to card waiting forever
     wait_card_selected = Card.query.filter_by(name="Wait Card").first()
     wait_card_selected.current_selected = True
@@ -156,6 +191,7 @@ def reset_votes(id):
     Votes.query.filter_by(id=id).delete()
     card = Card.query.filter_by(id=id).first()
     card.rating = None
+    Votes.query.filter_by(card_id=id).delete()
     db.session.commit()
 
 def re_vote(id):
@@ -227,3 +263,51 @@ def send_pervious_voted():
         previous_card_data = {'prev_card_info': [list(prev_card_db)], 'prev_card_votes':  card_ratings}
         # print (previous_card_data)
         emit('previous_card', previous_card_data, namespace='/info', broadcast=True)
+
+def get_card_colour_page_info(colour):
+    #all cards of the colour
+    sql_card_rating_str = 'SELECT name, rating, card_rarity FROM' \
+                          ' Card where card_color = \'{}\' ORDER BY rating DESC LIMIT 20'.format(colour)
+    card_ratings_db = db.session.execute(sql_card_rating_str).fetchall()
+    card_ratings = []
+    for card_all in card_ratings_db:
+        card_ratings.append(list(card_all))
+
+    # commons in the colour
+    sql_card_common_rating_str = 'SELECT name, rating, card_rarity FROM' \
+                                 ' Card where card_color = \'{}\' and ' \
+                                 'card_rarity = \'common\' ORDER BY rating DESC LIMIT 20'.format(colour)
+    card_common_ratings_db = db.session.execute(sql_card_common_rating_str).fetchall()
+    card_common_ratings = []
+    for card_common_all in card_common_ratings_db:
+        card_common_ratings.append(list(card_common_all))
+
+    # background colour
+
+    bg_colours = {'W': '#eadede',
+                  'U': '#4b81d8',
+                  'B': '#1c1d1e',
+                  'R': '#af2626',
+                  'G': '#339b41',
+                  'multi-colour': '#bc3cba',
+                  'colourless': '#898189'}
+
+    bg_colour = '#FFFFFF'
+    if colour in bg_colours:
+        bg_colour = bg_colours[colour]
+
+
+    all_card_ratings = {'card_ratings': card_ratings, 'common_ratings': card_common_ratings, 'bg_colour': bg_colour}
+
+    return all_card_ratings
+
+
+def save_json(data):
+    with open('app/static/additional_info.json', 'w') as outfile:
+        json.dump(data, outfile)
+
+
+def load_json():
+    with open('app/static/additional_info.json', 'r') as json_file:
+        json_data = json.load(json_file)
+    return json_data

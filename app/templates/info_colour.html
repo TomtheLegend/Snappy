@@ -1,0 +1,61 @@
+<!doctype html>
+<html class="no-js" lang="">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>Snappy Vote</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+        <!-- get the link to the css -->
+        <link rel="stylesheet" href="../static/css/colour_info.css">
+
+    </head>
+
+    <body bgcolor={{bg_colour}}>
+    <div class="row">
+        <div class="column">
+            <h1>Stats</h1>
+                <h3>All Cards Rating</h3>
+                <table id="all_cards_colour">
+                    <tbody class="tbody_card">
+                        <tr class="header">
+                            <th>Name</th>
+                            <th>Rating</th>
+                            <th>Rarity</th>
+                        </tr>
+                        {% for card_row in card_ratings %}
+                            <tr>
+                            {% for card in card_row %}
+                                <td>{{card}}</td>
+                            {% endfor %}
+                            </tr>
+                        {% endfor %}
+
+                    </tbody>
+                </table>
+        </div>
+        <div class="column">
+              <h3>Common Cards Rating</h3>
+                <table id="common_cards_colour">
+                    <tbody class="tbody_card">
+                        <tr class="header">
+                            <th>Name</th>
+                            <th>Rating</th>
+                            <th>Rarity</th>
+                        </tr>
+                        {% for card_row in common_ratings %}
+                            <tr>
+                            {% for card in card_row %}
+                                <td>{{card}}</td>
+                            {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+        </div>
+    </div>
+
+
+    </body>
+

@@ -14,10 +14,11 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = '&3\x02\x8d\x86\x0c\x8cUy\xd93\xcc\x06\x9c\xce\xa8gcje\xde\xd9\x9a\x9c'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basepath, 'snappy.db')
 app.config['DEBUG'] = True
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-socketio = SocketIO(app, ping_timeout=5, ping_interval=3)
+socketio = SocketIO(app, ping_timeout=10, ping_interval=3)
 
 #configure auth
 login_manager = LoginManager()

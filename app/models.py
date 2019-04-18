@@ -17,6 +17,7 @@ class Card(db.Model):
     card_price = db.Column(db.String(50))
     card_rarity = db.Column(db.String(50))
     card_color = db.Column(db.String(50), default="")
+    card_cmc = db.Column(db.String(50))
     time_taken = db.Column(db.String(50))
 
     # relationships

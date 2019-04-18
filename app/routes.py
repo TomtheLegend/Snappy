@@ -11,6 +11,9 @@ from app.monitor import MonitorThread, thread
 
 from sqlalchemy import and_, exists
 
+###############
+##  Routes  ###
+###############
 
 @app.route('/')
 @app.route('/index')
@@ -20,7 +23,7 @@ def index():
     global thread
     #Start the monitoring thread if it hasn't already
     if not thread.isAlive():
-        print("Starting Thread")
+        print("Starting Thread from index")
         thread = MonitorThread()
         thread.start()
 
@@ -40,6 +43,14 @@ def info():
     # Card.next_card()
     return render_template('info.html')
 
+
+@app.route('/colourinfo/<colour>')
+def colour_info(colour):
+
+    # all cards
+    card_data = card_info.get_card_colour_page_info(colour)
+
+    return render_template('info_colour.html', **card_data)
 
 @app.route('/admin', methods=['GET', 'POST'])
 @login_required
@@ -167,12 +178,15 @@ def re_vote(data):
     card_info.re_vote(data)
 
 @socketio.on('enable_vote_buttons', namespace='/admin')
-def re_vote(data):
+def enable_vote_button():
     card_info.send_update_vote_bar(False)
 
 @socketio.on('remove_voter', namespace='/admin')
-def re_vote(data):
-    active = User.query.filter_by(username=data).first()
-    active.voting = True
+def remove_voter(username):
+    user_name = username
+    if '-' in user_name:
+        user_name = user_name.split('-')[0].strip()
+    active = User.query.filter_by(username=user_name).first()
+    active.voting = False
     db.session.commit()
 
