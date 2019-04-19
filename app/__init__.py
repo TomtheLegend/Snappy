@@ -18,7 +18,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-socketio = SocketIO(app, ping_timeout=10, ping_interval=3)
+socketio = SocketIO(app, ping_timeout=7, ping_interval=3)
 
 #configure auth
 login_manager = LoginManager()

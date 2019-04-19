@@ -20,10 +20,21 @@ def get_current_voters():
 
 
 def get_current_vote_count():
+
     current_card = Card.query.filter_by(current_selected=True).first()
     votes_list = Votes.query.filter_by(card_id=current_card.id).all()
-    print(len(votes_list))
-    return len(votes_list)
+
+    current_users = User.query.filter_by(voting=True).all()
+    voted_number = 0
+
+    for voter in current_users:
+        for vote in votes_list:
+            if voter.id == vote.user_id:
+                voted_number += 1
+                break
+
+    print(voted_number)
+    return str(voted_number)
 
 
 def get_current_votes_string():
@@ -91,11 +102,12 @@ def get_card_info():
     #card average power / toughness
     average_data = load_json()
     if current_card.card_cmc is not None:
-        card_dict['info']['Average Power: All CMC ' + str(current_card.card_cmc)] = ' ' + str(average_data['average_power'][current_card.card_cmc]['all'])
-        card_dict['info']['Average Toughness: All CMC ' + str(current_card.card_cmc)] = ' ' + str(average_data['average_toughness'][current_card.card_cmc]['all'])
-        cmc_text = 'CMC ' + str(current_card.card_cmc) + ' ' + str(current_card.card_rarity)
-        card_dict['info']['Average Power: ' + cmc_text] = ' ' + str(average_data['average_power'][current_card.card_cmc][current_card.card_rarity])
-        card_dict['info']['Average Toughness: ' + cmc_text] = ' ' + str(average_data['average_toughness'][current_card.card_cmc][current_card.card_rarity])
+        card_dict['info']['Average Power- CMC {}- All / {}'.format(str(current_card.card_cmc),
+                                                                   str(current_card.card_rarity))] = ' {} / {} '.format(str(average_data['average_power'][current_card.card_cmc]['all']),
+                                                                                                                str(average_data['average_power'][current_card.card_cmc][current_card.card_rarity]))
+        card_dict['info']['Average Toughness- CMC {}- All / {}'.format(str(current_card.card_cmc),
+                                                                   str(current_card.card_rarity))] = ' {} / {} '.format(str(average_data['average_toughness'][current_card.card_cmc]['all']),
+                                                                                                                str(average_data['average_toughness'][current_card.card_cmc][current_card.card_rarity]))
 
     return card_dict
 
@@ -197,6 +209,14 @@ def user_CSV(user):
 
 def send_user_list():
     users = User.query.all()
+    # get current card
+    current_card = Card.query.filter_by(current_selected=True).first()
+    #get voted list
+    voted = Votes.query.filter_by(card_id=current_card.id).all()
+    voters = []
+    for voter in voted:
+        voters.append(voter.user_id)
+
     list_users = []
     list_voters = ''
     for user in users:
@@ -204,7 +224,10 @@ def send_user_list():
         # print(user.username + '-' + str(user.voting))
         if user.voting:
             user_str += ' - Voter'
-            list_voters += user.username + ', '
+            if user.id in voters:
+                list_voters += '<mark>' + user.username + '</mark>, '
+            else:
+                list_voters += user.username + ', '
 
         list_users.append(user_str)
 

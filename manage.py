@@ -303,7 +303,7 @@ def runserver():
         print(user.logged_in)
     db.session.commit()
 
-    socketio.run(app, host='192.168.0.14', port='5000')
+    socketio.run(app, host='192.168.0.187', port='5000')
     #192.168.1.117
     #192.168.0.14
 

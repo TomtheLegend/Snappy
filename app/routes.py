@@ -165,9 +165,11 @@ def add_user(username):
 @socketio.on('del_user', namespace='/admin')
 def del_user(username):
     user_name = username
+    print(username)
     if '-' in user_name:
         user_name = user_name.split('-')[0].strip()
     user_exists = User.query.filter_by(username=user_name).first()
+    print(user_exists)
     User.query.filter_by(id=user_exists.id).delete()
     db.session.commit()
     card_info.send_user_list()

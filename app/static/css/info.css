@@ -160,6 +160,11 @@ nav a:hover {
    Author's custom styles
    ========================================================================== */
 
+mark {
+  background-color: aqua;
+  color: black;
+}
+
 table, th, td{
   border: 2px solid #3A559A;
   border-collapse: collapse;
