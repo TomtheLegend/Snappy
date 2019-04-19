@@ -230,6 +230,14 @@ table.all_cards tfoot .links a{
     border-radius: 16px;
 }
 
+.user{
+    text-align: center;
+}
+
+.h3{
+    text-align: center;
+}
+
 
 /* ==========================================================================
    Media Queries

@@ -6,6 +6,7 @@ from app import app, db, card_info
 from time import sleep
 from flask_socketio import emit
 from app import card_info
+import time
 
 
 thread = Thread()

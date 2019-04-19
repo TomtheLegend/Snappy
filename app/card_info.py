@@ -91,24 +91,36 @@ def get_card_info():
     #card average power / toughness
     average_data = load_json()
     if current_card.card_cmc is not None:
-        card_dict['info']['Average Power: CMC ' + str(current_card.card_cmc)] = ' ' + str(average_data['average_power'][current_card.card_cmc][current_card.card_rarity])
-        card_dict['info']['Average Toughness: CMC ' + str(current_card.card_cmc)] = ' ' + str(average_data['average_toughness'][current_card.card_cmc][current_card.card_rarity])
+        card_dict['info']['Average Power: All CMC ' + str(current_card.card_cmc)] = ' ' + str(average_data['average_power'][current_card.card_cmc]['all'])
+        card_dict['info']['Average Toughness: All CMC ' + str(current_card.card_cmc)] = ' ' + str(average_data['average_toughness'][current_card.card_cmc]['all'])
+        cmc_text = 'CMC ' + str(current_card.card_cmc) + ' ' + str(current_card.card_rarity)
+        card_dict['info']['Average Power: ' + cmc_text] = ' ' + str(average_data['average_power'][current_card.card_cmc][current_card.card_rarity])
+        card_dict['info']['Average Toughness: ' + cmc_text] = ' ' + str(average_data['average_toughness'][current_card.card_cmc][current_card.card_rarity])
 
     return card_dict
 
 
 def change_card():
+    global wait_card
     # set wait_colour to none as default
     wait_colour = None
     # check if colour changing, if so select the wait card.
     current = Card.query.filter_by(current_selected=True).first()
     next = Card.query.filter_by(rating=None).first()
     # check for no colour to see if its a wait card.
-    print ('Card_change ' +current.card_color + ' : '+ next.card_color)
-    if current.card_color is not next.card_color:
-        print('colours differ')
+    if next is None:
+            # reached the end so output CSV
+            make_CSV()
+            wait_card = True
+    else:
+        if next.name is "Wait Card":
+            make_CSV()
+            wait_card = True
+
+    print('change card colour: ' + current.card_color + ' - ' + next.card_color)
+    if current.card_color != next.card_color:
+        print('not same colour')
         if next.card_color is not "":
-            print('no colour next')
             wait_colour = current.card_color
 
     if wait_colour:
@@ -131,15 +143,8 @@ def change_card():
 
     else:
         current.current_selected = False
-
-        if next is None:
-            # reached the end so output CSV
-            make_CSV()
-        else:
-            if next.name is "Wait Card":
-                make_CSV()
-            next.current_selected = True
-            db.session.commit()
+        next.current_selected = True
+        db.session.commit()
             #send_update_vote_bar(False)
 
     send_card_info()
@@ -153,17 +158,18 @@ def make_CSV():
 
     sql_all_cards = 'SELECT * FROM Card'
     all_cards = db.session.execute(sql_all_cards)
-    print (all_cards.keys())
+    #print (all_cards.keys())
     outcsv.writerow(all_cards.keys())
     # dump rows
     outcsv.writerows(all_cards.fetchall())
 
     outfile.close()
 
-    #todo all data. per voter new sheet per voter.
-    # list of users
-    # loop through votes table per user?
-
+    all_users = User.query.all()
+    #loop through all users
+    for user in all_users:
+        #generate  csv for each user
+        user_CSV(user)
 
     # set to card waiting forever
     wait_card_selected = Card.query.filter_by(name="Wait Card").first()
@@ -172,20 +178,40 @@ def make_CSV():
     wait_card = True
 
 
+def user_CSV(user):
+    '''
+    User: string value for the users name
+    '''
+    outfile = open('app/static/csvs/' + user.username + '.csv', 'w', newline='')
+    outcsv = csv.writer(outfile)
+
+    sql_all_cards = 'SELECT Card.*, Votes.vote_score FROM Card ' \
+                    'INNER JOIN Votes ON Card.id=Votes.card_id WHERE Votes.user_id = \'{}\''.format(user.id)
+    all_cards = db.session.execute(sql_all_cards)
+    #print(all_cards.keys())
+    outcsv.writerow(all_cards.keys())
+    # dump rows
+    outcsv.writerows(all_cards.fetchall())
+
+    outfile.close()
+
 def send_user_list():
     users = User.query.all()
     list_users = []
+    list_voters = ''
     for user in users:
         user_str = user.username
         # print(user.username + '-' + str(user.voting))
         if user.voting:
             user_str += ' - Voter'
+            list_voters += user.username + ', '
 
         list_users.append(user_str)
 
     data = {'user': list_users}
+    voters = {'user': list_voters}
     emit('users', data, namespace='/admin', broadcast=True)
-    emit('users', data, namespace='/info', broadcast=True)
+    emit('users', voters, namespace='/info', broadcast=True)
 
 def reset_votes(id):
     Votes.query.filter_by(id=id).delete()
@@ -213,23 +239,13 @@ def send_ratings():
     # name, rating, colour, rarity
     # print('send_ratings')
     sql_card_rating_str = 'SELECT name, rating, card_color, card_rarity FROM' \
-                          ' Card ORDER BY rating DESC LIMIT 10'
+                          ' Card ORDER BY rating DESC LIMIT 15'
     card_ratings_db = db.session.execute(sql_card_rating_str).fetchall()
     card_ratings = []
     for card_all in card_ratings_db:
         card_ratings.append(list(card_all))
 
-    current = Card.query.filter_by(current_selected=True).first()
-    sql_card_rating_colour_str = 'SELECT name, rating, card_color, card_rarity FROM' \
-                          ' Card WHERE card_color=  \'{}\' ' \
-                          'ORDER BY rating DESC LIMIT 10'.format(current.card_color)
-    card_ratings_color_db = db.session.execute(sql_card_rating_colour_str).fetchall()
-
-    card_ratings_color = []
-    for card_all_c in card_ratings_color_db:
-        card_ratings_color.append(list(card_all_c))
-
-    all_card_ratings = {'card_ratings': card_ratings, 'card_ratings_color': card_ratings_color}
+    all_card_ratings = {'card_ratings': card_ratings}
 
     # print(card_ratings)
     emit('all_card_ratings', all_card_ratings, namespace='/info', broadcast=True)
@@ -239,30 +255,28 @@ def send_pervious_voted():
     # get the previous card. the last voted on card? if card not none rating sort desc?
     current = Card.query.filter_by(current_selected=True).first()
 
-
-
-    sql_prev_card_str = 'SELECT id, name, rating, card_color, card_rarity FROM' \
-                          ' Card WHERE rating IS NOT NULL ORDER BY id DESC'
-    prev_card_db = db.session.execute(sql_prev_card_str).first()
-    if prev_card_db:
-
+    next_id = current.id - 1
+    if next_id>0:
+        sql_prev_card_str = 'SELECT id, name, rating, card_color, card_rarity FROM' \
+                            ' Card WHERE id = \'{}\''.format(next_id)
+        prev_card_db = db.session.execute(sql_prev_card_str).first()
         if prev_card_db:
             all_votes_sql = 'SELECT User.username, Votes.vote_score FROM Votes ' \
                       'INNER JOIN User ON User.id=Votes.user_id WHERE Votes.card_id = \'{}\''.format(prev_card_db[0])
             prev_card_votes_db = db.session.execute(all_votes_sql).fetchall()
             # print(prev_card_votes_db)
-        card_ratings = []
-        for card_all_prev in prev_card_votes_db:
-            prev_list = list(card_all_prev)
-            prev_list[1] = prev_list[1]/2
-            card_ratings.append(prev_list)
-        #get the card name and its vote, other info?
+            card_ratings = []
+            for card_all_prev in prev_card_votes_db:
+                prev_list = list(card_all_prev)
+                prev_list[1] = prev_list[1]/2
+                card_ratings.append(prev_list)
+            #get the card name and its vote, other info?
 
-        # prev_votes = [[]]
-        # prev_card_info = []
-        previous_card_data = {'prev_card_info': [list(prev_card_db)], 'prev_card_votes':  card_ratings}
-        # print (previous_card_data)
-        emit('previous_card', previous_card_data, namespace='/info', broadcast=True)
+            # prev_votes = [[]]
+            # prev_card_info = []
+            previous_card_data = {'prev_card_info': [list(prev_card_db)], 'prev_card_votes':  card_ratings}
+            # print (previous_card_data)
+            emit('previous_card', previous_card_data, namespace='/info', broadcast=True)
 
 def get_card_colour_page_info(colour):
     #all cards of the colour

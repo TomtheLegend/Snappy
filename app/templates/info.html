@@ -48,17 +48,6 @@
                         </tr>
                     </tbody>
                 </table>
-                <h3>Cards Rating by Colour</h3>
-                <table id="cards_colour">
-                    <tbody class="tbody_card">
-                        <tr class="header">
-                            <th>Name</th>
-                            <th>Rating</th>
-                            <th>Colour</th>
-                            <th>Rarity</th>
-                        </tr>
-                    </tbody>
-                </table>
             </div>
         </div>
         <div class="column">
@@ -114,13 +103,6 @@
             //socket io
             socket.on('all_card_ratings', function(data) {
                 // remove current list
-                var cards_colour = document.getElementById("cards_colour");
-                var card_tbody = cards_colour.getElementsByTagName("tbody").item(0);
-                var card_row_color = card_tbody.getElementsByClassName("card_row");
-                while (card_row_color[0]) {
-                    card_row_color[0].parentNode.removeChild(card_row_color[0]);
-                }
-
                 var all_cards = document.getElementById("all_cards");
                 var card_tbody_all = all_cards.getElementsByTagName("tbody").item(0);
                 var card_row = card_tbody_all.getElementsByClassName("card_row");
@@ -189,21 +171,16 @@
                 while (user_elements[0]) {
                     user_elements[0].parentNode.removeChild(user_elements[0]);
                 }
-                // check for new rulings
                 if (data['user'].length > 0){
-                    for (index = 0, len = data['user'].length; index < len; ++index) {
                         // add user
-                        // console.log('user: ' + data['user'][index]);
-                        if (data['user'][index].includes("-")){
-                            var newuser = document.createElement ("div");
-                            newuser.innerHTML = data['user'][index];
-                            newuser.value = data['user'][index];
-                            newuser.className = "user";
-                            newuser.style.border = "thin blue";
+                        // console.log('user: ' + data['user']);
+                        var newuser = document.createElement ("div");
+                        newuser.innerHTML = data['user'];
+                        newuser.value = data['user'];
+                        newuser.className = "user";
+                        newuser.style.border = "thin blue";
 
-                            users.appendChild (newuser);
-                        }
-                    }
+                        users.appendChild (newuser);
                 }
             });
 

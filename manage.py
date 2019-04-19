@@ -21,7 +21,7 @@ manager = Manager(app)
 
 scryfall_String = 'https://api.scryfall.com/cards/search?q=set:grn%20order:color'
 
-set_code = 'rna'
+set_code = 'war'
 
 @manager.command
 def initdb():
@@ -43,7 +43,7 @@ def initdb():
         average_toughness_count[str(i)] = {'all': 0, 'common': 0, 'uncommon': 0, 'rare': 0, 'mythic': 0}
 
 
-    new_cards = scrython.cards.Search(q='set:{}'.format(set_code), order='color')
+    new_cards = scrython.cards.Search(q='set:{} is:booster'.format(set_code), order='color')
     all_cards = new_cards.data()
     #print(new_cards.next_page())
     if new_cards.has_more():
@@ -96,7 +96,7 @@ def initdb():
             # update relevant average power stats
 
             if representsint(card['power']):
-                print('power : ' +card['power'])
+                #print('power : ' +card['power'])
                 power_int = int(card['power'])
                 average_power[str(int(card['cmc']))]['all'] += power_int
                 average_power_count[str(int(card['cmc']))]['all'] += 1
@@ -109,7 +109,7 @@ def initdb():
             # update relevant average power stats
 
             if representsint(card['toughness']):
-                print('toughness : ' +card['toughness'])
+                #print('toughness : ' +card['toughness'])
                 toughness_int = int(card['toughness'])
                 average_toughness[str(int(card['cmc']))]['all'] += toughness_int
                 average_toughness_count[str(int(card['cmc']))]['all'] += 1
@@ -118,8 +118,6 @@ def initdb():
                 average_toughness_count[str(int(card['cmc']))][card['rarity']] += 1
 
         # card colour
-        print(str(int(card['cmc'])))
-
         card_color = ''
         if card['colors'] is not None:
 
@@ -154,26 +152,28 @@ def initdb():
 
         # card sub types -
         #check for sub types
-        # if '—' in card['type_line']:
-        #     suptypes = card['type_line'].split('—')[1].split(' ')
-        #
-        #     for sub in suptypes:
-        #         # add to the db
-        #         if sub is not '':
-        #             #print(sub)
-        #             db.session.add(Card_Subtypes(card_id=card['collector_number'],
-        #                                    subtype=sub.strip()))
-        #
-        # # add the card rulings
-        # # collector_number, card['collector_number']
-        # card_rulings = scrython.rulings.Code(code=set_code, collector_number=card['collector_number'])
-        # if card_rulings.data():
-        #     for rule in card_rulings.data():
-        #         if rule['source'] == 'wotc':
-        #             db.session.add(Rulings(card_id=card['collector_number'],
-        #                                ruling=rule['comment']))
-        #
-        #
+        if '—' in card['type_line']:
+            suptypes = card['type_line'].split('—')[1].split(' ')
+
+            for sub in suptypes:
+                # add to the db
+                if sub is not '':
+                    #print(sub)
+                    db.session.add(Card_Subtypes(card_id=card['collector_number'],
+                                           subtype=sub.strip()))
+
+        # add the card rulings
+        # collector_number, card['collector_number']
+        card_rulings = scrython.rulings.Code(code=set_code, collector_number=card['collector_number'])
+        if card_rulings.data():
+            for rule in card_rulings.data():
+                if rule['source'] == 'wotc':
+                    db.session.add(Rulings(card_id=card['collector_number'],
+                                       ruling=rule['comment']))
+
+
+
+    print('all Cards added')
 
     ### calculate metrics ###
     #power
@@ -190,18 +190,16 @@ def initdb():
             if average_toughness_count[key_cmc][key_rarity] > 0:
                 value_cmc[key_rarity] = round(float(value_rarity / average_toughness_count[key_cmc][key_rarity]), 3)
 
-    for key_cmc, value_cmc in average_power.items():
-        print('cmc: {} - power: {}'.format(key_cmc, value_cmc))
-
-    for key_cmc, value_cmc in average_toughness.items():
-        print('cmc: {} - toughness: {}'.format(key_cmc, value_cmc))
-
-
     save_dict = {'average_power': average_power, 'average_toughness': average_toughness}
     save_json(save_dict)
 
+    print('Average power & toughness calculated')
 
     #### add the wait cards ####
+    db.session.add(Card(name="Wait Card colourless",
+                        card_image='/static/img/colourless break.png',
+                        card_price=None,
+                        card_rarity=None))
     db.session.add(Card(name="Wait Card W",
                         card_image='/static/img/plains break.png',
                         card_price=None,
@@ -222,8 +220,12 @@ def initdb():
                         card_image='/static/img/forest break.png',
                         card_price=None,
                         card_rarity=None))
-    #add, land, multi, artifact.
+    db.session.add(Card(name="Wait Card multi-colour",
+                        card_image='/static/img/multi colour break.png',
+                        card_price=None,
+                        card_rarity=None))
 
+    #add, multi, artifact.
 
     # add the control wait card for player use.
     db.session.add(Card(name="Wait Card",
@@ -270,15 +272,14 @@ def dropdb():
 
 @manager.command
 def runserver():
-
     # check csv
-    if True is True:
+    if True is False:
         all_cards = Card.query.all()
         votes_pos = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
         #votes_pos = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, None]
 
         for card in all_cards:
-            if card.id in range(1, 29):
+            if card.id in range(1, 40):
                 card.rating = random.choice(votes_pos)
             else:
             #card.rating = random.choice(votes_pos)
