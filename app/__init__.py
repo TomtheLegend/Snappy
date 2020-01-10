@@ -18,8 +18,10 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-socketio = SocketIO(app, ping_timeout=7, ping_interval=3)
-
+# socketio = SocketIO(app, ping_timeout=10, ping_interval=3,
+#                     cors_allowed_origins="*", logging=True, engineio_logger=True)
+socketio = SocketIO(app, ping_timeout=10, ping_interval=3,
+                    cors_allowed_origins="*")
 #configure auth
 login_manager = LoginManager()
 login_manager.session_protection = 'strong'

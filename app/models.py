@@ -7,6 +7,7 @@ from sqlalchemy.orm import relationship
 
 
 
+
 class Card(db.Model):
     __tablename__ = 'Card'
     id = db.Column(db.Integer, primary_key=True)
@@ -26,6 +27,7 @@ class Card(db.Model):
     Card_colour = relationship("Card_colour")
     Card_Subtypes = relationship("Card_Subtypes")
 
+
 class User(db.Model, UserMixin):
     __tablename__ = 'User'
     id = db.Column(db.Integer, primary_key=True)
@@ -35,6 +37,7 @@ class User(db.Model, UserMixin):
     admin = db.Column(db.Boolean, default=False)
     tracker = relationship("Votes")
 
+
 class Votes(db.Model):
     __tablename__ = 'Votes'
     id = db.Column(db.Integer, primary_key=True)
@@ -42,11 +45,13 @@ class Votes(db.Model):
     card_id = db.Column(db.Integer, db.ForeignKey('Card.id'))
     user_id = db.Column(db.Integer, db.ForeignKey('User.id'))
 
+
 class Rulings(db.Model):
     __tablename__ = 'Rulings'
     id = db.Column(db.Integer, primary_key=True)
     card_id = db.Column(db.Integer, db.ForeignKey('Card.id'))
     ruling = db.Column(db.String(1000))
+
 
 class Card_colour(db.Model):
     __tablename__ = 'Card_colour'
@@ -54,9 +59,45 @@ class Card_colour(db.Model):
     card_id = db.Column(db.Integer, db.ForeignKey('Card.id'))
     colour = db.Column(db.String(50))
 
+
 class Card_Subtypes(db.Model):
     __tablename__ = 'Card_Subtypes'
     id = db.Column(db.Integer, primary_key=True)
     card_id = db.Column(db.Integer, db.ForeignKey('Card.id'))
     subtype = db.Column(db.String(50))
+
+
+class Card_Supertypes(db.Model):
+    __tablename__ = 'Card_Supertypes'
+    id = db.Column(db.Integer, primary_key=True)
+    card_id = db.Column(db.Integer, db.ForeignKey('Card.id'))
+    supertype = db.Column(db.String(50))
+
+class Card_SupertypesMetrics(db.Model):
+    __tablename__ = 'Card_Supertypes_Metrics'
+    id = db.Column(db.Integer, primary_key=True)
+    supertypes = db.Column(db.String(100))
+    card_colour = db.Column(db.String(10))
+    rarity = db.Column(db.String(50))
+    card_count = db.Column(db.Integer)
+
+class PowerAverages(db.Model):
+    __tablename__ = 'Power_Averages'
+    id = db.Column(db.Integer, primary_key=True)
+    card_colour = db.Column(db.String(10))
+    rarity = db.Column(db.String(50))
+    cmc = db.Column(db.String(50))
+    card_average = db.Column(db.Float)
+    card_count = db.Column(db.Integer)
+
+class ToughnessAverages(db.Model):
+    __tablename__ = 'Toughness_Averages'
+    id = db.Column(db.Integer, primary_key=True)
+    card_colour = db.Column(db.String(10))
+    rarity = db.Column(db.String(50))
+    cmc = db.Column(db.String(50))
+    card_average = db.Column(db.Float)
+    card_count = db.Column(db.Integer)
+
+
 

@@ -15,7 +15,7 @@ thread_stop_event = Event()
 
 class MonitorThread(Thread):
     def __init__(self):
-        self.delay = 5
+        self.delay = 2
         super(MonitorThread, self).__init__()
 
     def monitor_function(self):
@@ -36,7 +36,7 @@ class MonitorThread(Thread):
                 print('active_voters_count: ' + str(user_voters_count))
                 card_info.send_update_vote_bar()
 
-                #get tracker count, ensure all votes collected
+                # get tracker count, ensure all votes collected
                 votes_list = Votes.query.filter_by(card_id=current_card.id).all()
                 print('current_cast_votes: ' + str(len(votes_list)))
 
@@ -51,7 +51,6 @@ class MonitorThread(Thread):
                     if not voted:
                         all_voted = False
                         break
-
 
                 if all_voted and user_voters_count > 0 and card_info.wait_card is False:
                     # calculate score and update the Card  table

@@ -54,8 +54,11 @@ def send_card_info():
 
 
 def get_card_info():
-    # returns a dict of data
-    #dict is split into sections to copy the page, each section is added seperately
+    '''
+    collect info related to the current card
+    dict is split into sections to copy the page, each section is added separately
+    returns: dict of all data
+    '''
     card_dict = {'card_image': '', 'rulings': [], 'info': {}}
     current_card = Card.query.filter_by(current_selected=True).first()
 
@@ -79,17 +82,19 @@ def get_card_info():
                   '( SELECT card_id, colour FROM Card_colour GROUP BY card_id HAVING COUNT(card_id) = 1 )AS ONLY_ONCE' \
                   ' WHERE ONLY_ONCE.colour = \'{}\''.format(str(colour.colour))
         solo_colour = db.session.execute(sql_colour_str).fetchall()
-        card_dict['info'][str(colour.colour)] = ':all - 1/' + str(solo_colour[0][0])
+        card_dict['info'][str(colour.colour)] = ':all - ' + str(solo_colour[0][0])
         # rarity in the colour
         sql_rariry_str = 'SELECT COUNT(card_id) FROM ' \
                   '( SELECT Card_colour.card_id, Card_colour.colour, Card.card_rarity FROM Card_colour ' \
-                  'INNER JOIN Card ON Card_colour.card_id=Card.id GROUP BY Card_colour.card_id HAVING COUNT(Card_colour.card_id) = 1 )AS ONLY_ONCE' \
-                  ' WHERE ONLY_ONCE.colour = \'{}\' AND ONLY_ONCE.card_rarity = \'{}\''.format(str(colour.colour), current_card.card_rarity)
+                  'INNER JOIN Card ON Card_colour.card_id=Card.id GROUP ' \
+                  'BY Card_colour.card_id HAVING COUNT(Card_colour.card_id) = 1 )AS ONLY_ONCE' \
+                  ' WHERE ONLY_ONCE.colour = \'{}\' ' \
+                  'AND ONLY_ONCE.card_rarity = \'{}\''.format(str(colour.colour), current_card.card_rarity)
         solo_colour_rarity = db.session.execute(sql_rariry_str).fetchall()
         card_dict['info'][str(colour.colour)+':'+str(current_card.card_rarity)] = ' ' + str(solo_colour_rarity[0][0])
 
 
-    #card sup types total
+    # card sub types total
     card_subtypes = Card_Subtypes.query.filter_by(card_id=current_card.id).all()
     for subtype in card_subtypes:
         sql_subtype_str = 'SELECT COUNT(card_id) FROM' \
@@ -97,17 +102,6 @@ def get_card_info():
         solo_type = db.session.execute(sql_subtype_str).fetchall()
         # print (solo_type)
         card_dict['info'][str(subtype.subtype)] = ' ' + str(solo_type[0][0])
-
-
-    #card average power / toughness
-    average_data = load_json()
-    if current_card.card_cmc is not None:
-        card_dict['info']['Average Power- CMC {}- All / {}'.format(str(current_card.card_cmc),
-                                                                   str(current_card.card_rarity))] = ' {} / {} '.format(str(average_data['average_power'][current_card.card_cmc]['all']),
-                                                                                                                str(average_data['average_power'][current_card.card_cmc][current_card.card_rarity]))
-        card_dict['info']['Average Toughness- CMC {}- All / {}'.format(str(current_card.card_cmc),
-                                                                   str(current_card.card_rarity))] = ' {} / {} '.format(str(average_data['average_toughness'][current_card.card_cmc]['all']),
-                                                                                                                str(average_data['average_toughness'][current_card.card_cmc][current_card.card_rarity]))
 
     return card_dict
 
@@ -125,14 +119,14 @@ def change_card():
             make_CSV()
             wait_card = True
     else:
-        if next.name is "Wait Card":
+        if next.name == "Wait Card":
             make_CSV()
             wait_card = True
 
     print('change card colour: ' + current.card_color + ' - ' + next.card_color)
     if current.card_color != next.card_color:
         print('not same colour')
-        if next.card_color is not "":
+        if next.card_color != "":
             wait_colour = current.card_color
 
     if wait_colour:
@@ -261,15 +255,20 @@ def send_ratings():
     # top 10 higest rated cards
     # name, rating, colour, rarity
     # print('send_ratings')
-    sql_card_rating_str = 'SELECT name, rating, card_color, card_rarity FROM' \
-                          ' Card ORDER BY rating DESC LIMIT 15'
+    current_card = Card.query.filter_by(current_selected=True).first()
+
+    sql_card_rating_str = 'SELECT name, rating, card_color, card_rarity, card_image FROM' \
+                          ' Card ORDER BY rating DESC LIMIT 10'
     card_ratings_db = db.session.execute(sql_card_rating_str).fetchall()
     card_ratings = []
     for card_all in card_ratings_db:
         card_ratings.append(list(card_all))
 
-    all_card_ratings = {'card_ratings': card_ratings}
+    # todo add commons/ colour / power/ toughness/ supertypes? inbed card image for tooltip hover.
+    card_colour_ratings = get_card_colour_page_info(current_card.card_color)
 
+    all_card_ratings = {'card_ratings': card_ratings}
+    all_card_ratings.update(card_colour_ratings)
     # print(card_ratings)
     emit('all_card_ratings', all_card_ratings, namespace='/info', broadcast=True)
 
@@ -280,7 +279,7 @@ def send_pervious_voted():
 
     next_id = current.id - 1
     if next_id>0:
-        sql_prev_card_str = 'SELECT id, name, rating, card_color, card_rarity FROM' \
+        sql_prev_card_str = 'SELECT id, name, rating, card_color, card_rarity  FROM' \
                             ' Card WHERE id = \'{}\''.format(next_id)
         prev_card_db = db.session.execute(sql_prev_card_str).first()
         if prev_card_db:
@@ -293,7 +292,7 @@ def send_pervious_voted():
                 prev_list = list(card_all_prev)
                 prev_list[1] = prev_list[1]/2
                 card_ratings.append(prev_list)
-            #get the card name and its vote, other info?
+            # get the card name and its vote, other info?
 
             # prev_votes = [[]]
             # prev_card_info = []
@@ -301,19 +300,20 @@ def send_pervious_voted():
             # print (previous_card_data)
             emit('previous_card', previous_card_data, namespace='/info', broadcast=True)
 
+
 def get_card_colour_page_info(colour):
     #all cards of the colour
-    sql_card_rating_str = 'SELECT name, rating, card_rarity FROM' \
-                          ' Card where card_color = \'{}\' ORDER BY rating DESC LIMIT 20'.format(colour)
+    sql_card_rating_str = 'SELECT name, rating, card_rarity, card_image FROM' \
+                          ' Card where card_color = \'{}\' ORDER BY rating DESC LIMIT 10'.format(colour)
     card_ratings_db = db.session.execute(sql_card_rating_str).fetchall()
     card_ratings = []
     for card_all in card_ratings_db:
         card_ratings.append(list(card_all))
 
-    # commons in the colour
-    sql_card_common_rating_str = 'SELECT name, rating, card_rarity FROM' \
-                                 ' Card where card_color = \'{}\' and ' \
-                                 'card_rarity = \'common\' ORDER BY rating DESC LIMIT 20'.format(colour)
+    # commons
+    sql_card_common_rating_str = 'SELECT name, rating, card_color, card_image FROM' \
+                                 ' Card where card_rarity = \'common\' ORDER BY' \
+                                 ' rating DESC LIMIT 10'.format(colour)
     card_common_ratings_db = db.session.execute(sql_card_common_rating_str).fetchall()
     card_common_ratings = []
     for card_common_all in card_common_ratings_db:
@@ -333,11 +333,10 @@ def get_card_colour_page_info(colour):
     if colour in bg_colours:
         bg_colour = bg_colours[colour]
 
-
-    all_card_ratings = {'card_ratings': card_ratings, 'common_ratings': card_common_ratings, 'bg_colour': bg_colour}
+    all_card_ratings = {'card_colour_ratings': card_ratings, 'common_ratings': card_common_ratings,
+                        'bg_colour': bg_colour, }
 
     return all_card_ratings
-
 
 def save_json(data):
     with open('app/static/additional_info.json', 'w') as outfile:

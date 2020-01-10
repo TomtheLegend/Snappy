@@ -48,6 +48,7 @@
             </select>
             <button class="button" id="del_user" type="button">Delete user</button>
             <button class="button" id="remove_voter" type="button">Remove Voter</button>
+            <button class="button" id="logout_voter" type="button">Logout Voter</button>
             <input type="text" name="username" id="username" value=""><br>
             <button class="button" id="add_user" type="button">Add user</button>
 
@@ -82,6 +83,13 @@
                 var strUser = user.options[user.selectedIndex].text;
                 console.log('remove_voter ' + strUser);
                 socket.emit('remove_voter', strUser);
+            };
+
+            document.getElementById("logout_voter").onclick = function () {
+                var user = document.getElementById("users");
+                var strUser = user.options[user.selectedIndex].text;
+                console.log('logout_voter ' + strUser);
+                socket.emit('logout_voter', strUser);
             };
 
             document.getElementById("enable_vote_buttons").onclick = function () {

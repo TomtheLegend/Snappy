@@ -165,10 +165,17 @@ mark {
   color: black;
 }
 
-table, th, td{
-  border: 2px solid #3A559A;
-  border-collapse: collapse;
-  font: 22px Helvetica, Helvetica Neue, Arial;
+table,  td{
+    border: 1px solid #1C6EA4;
+    text-align: center;
+    vertical-align: top;
+    border-collapse: collapse;
+}
+th {
+    font-weight: bold;
+    font-size: 13px;
+    border: 1px solid #1C6EA4;
+    border-collapse: collapse;
 }
 
 table.all_cards {
@@ -183,7 +190,7 @@ table.all_cards td, table.all_cards th {
   padding: 3px 2px;
 }
 table.all_cards tbody td {
-  font-size: 13px;
+  font-size: 10px;
 }
 table.all_cards tr:nth-child(even) {
   background: #D0E4F5;
@@ -196,7 +203,7 @@ table.all_cards thead {
   border-bottom: 2px solid #444444;
 }
 table.all_cards thead th {
-  font-size: 15px;
+  font-size: 12px;
   font-weight: bold;
   color: #FFFFFF;
   text-align: center;
@@ -220,14 +227,48 @@ table.all_cards tfoot .links a{
   border-radius: 5px;
 }
 
-.column {
-  float: left;
-  width: 33%;
+table.bgtable {
+  width: 100%;
+  max-height: 100vw;
+  text-align: center;
+}
+
+tr.tablerowheader{
+    width: 100%;
+    text-align: center;
+}
+
+
+tr.tablerowtwo{
+    height: 50vw;
+    width: 100%;
+    text-align: center;
+    display: contents;
+}
+
+tr.tablerowthree{
+    width: 100%;
+    text-align: center;
+}
+
+.tbody_card{
+  display:block;
+}
+
+tr.card_row td{
+    font-size: 12px;
 }
 
 .card_details{
     border: 3px solid #3A559A;
     border-radius: 16px;
+}
+
+.card_image {
+   height: auto;
+   max-height: 50vh;
+   margin: auto;
+   object-fit: contain;
 }
 
 .User_info_border{
@@ -241,8 +282,98 @@ table.all_cards tfoot .links a{
 
 .h3{
     text-align: center;
+
 }
 
+h1 {
+    display: block;
+    font-size: 24px;
+    margin-block-start: 2px;
+    margin-block-end: 2px;
+    margin-inline-start: 0px;
+    margin-inline-end: 0px;
+    font-weight: bold;
+}
+
+.tooltip{
+  position: relative;
+  display: inline-block;
+  border-bottom: 1px dotted black;
+  font-size: 12px;
+}
+
+.tooltip .tooltiptable{
+  visibility: hidden;
+  background-color: #555;
+  color: #fff;
+  text-align: center;
+  padding: 5px 0;
+  border-radius: 6px;
+
+  /* Position the tooltip text */
+  position: fixed;
+  right: 40%;
+  top: 40%;
+  transform: translateY(-60%);
+
+  /* Fade in tooltip */
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.tooltip .tooltiptable::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #555 transparent transparent transparent;
+}
+
+/* Show the tooltip text when you mouse over the tooltip container */
+.tooltip:hover .tooltiptable {
+  visibility: visible;
+  opacity: 1;
+}
+
+
+.tooltip .tooltipimg {
+  visibility: hidden;
+  background-color: #555;
+  color: #fff;
+  text-align: center;
+  padding: 5px 0;
+  border-radius: 6px;
+
+  /* Position the tooltip text */
+  position: fixed;
+  right: 40%;
+  top: 50%;
+  transform: translateY(-60%);
+
+  /* Fade in tooltip */
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+/* Tooltip arrow */
+.tooltip .tooltipimg::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #555 transparent transparent transparent;
+}
+
+/* Show the tooltip text when you mouse over the tooltip container */
+.tooltip:hover .tooltipimg {
+  visibility: visible;
+  opacity: 1;
+}
 
 /* ==========================================================================
    Media Queries

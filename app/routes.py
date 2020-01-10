@@ -1,16 +1,16 @@
 __author__ = 'tomli'
 
-from flask import Flask, render_template, url_for, flash, redirect, request, session
+from flask import render_template, url_for, flash, redirect, request
 from app import app, db, socketio, card_info
 from flask_socketio import emit
 from app.models import Card, User, Votes
 from flask_login import login_required, login_user, current_user
 from app.forms import LoginForm
-import time, datetime
-from app.monitor import MonitorThread, thread
+import datetime
+from app.monitor import MonitorThread
+from sqlalchemy import and_
 
-from sqlalchemy import and_, exists
-
+thread_monitor = None
 ###############
 ##  Routes  ###
 ###############
@@ -19,13 +19,7 @@ from sqlalchemy import and_, exists
 @app.route('/index')
 @login_required
 def index():
-    # need visibility of the global thread object
-    global thread
-    #Start the monitoring thread if it hasn't already
-    if not thread.isAlive():
-        print("Starting Thread from index")
-        thread = MonitorThread()
-        thread.start()
+    thread_check()
 
     return render_template('index.html')
 
@@ -41,7 +35,12 @@ def vote():
 @app.route('/info', methods=['GET', 'POST'])
 def info():
     # Card.next_card()
-    return render_template('info.html')
+    metric_data = dict()
+    metric_data['supertypes'] = get_supertypes()
+    metric_data['powerav'] = get_averages('Power_Averages')
+    metric_data['toughnessav'] = get_averages('Toughness_Averages')
+    print(metric_data['powerav'])
+    return render_template('infonew.html', **metric_data)
 
 
 @app.route('/colourinfo/<colour>')
@@ -120,13 +119,7 @@ def voter_connect():
     active = User.query.filter_by(username=current_user.username).first()
     active.voting = True
     db.session.commit()
-
-    global thread
-    #Start the monitoring thread if it hasn't already
-    if not thread.isAlive():
-        print("Starting Thread")
-        thread = MonitorThread()
-        thread.start()
+    thread_check()
 
     card_info.send_card_info()
 
@@ -162,6 +155,7 @@ def add_user(username):
         db.session.commit()
         card_info.send_user_list()
 
+
 @socketio.on('del_user', namespace='/admin')
 def del_user(username):
     user_name = username
@@ -179,9 +173,11 @@ def del_user(username):
 def re_vote(data):
     card_info.re_vote(data)
 
+
 @socketio.on('enable_vote_buttons', namespace='/admin')
 def enable_vote_button():
     card_info.send_update_vote_bar(False)
+
 
 @socketio.on('remove_voter', namespace='/admin')
 def remove_voter(username):
@@ -192,3 +188,112 @@ def remove_voter(username):
     active.voting = False
     db.session.commit()
 
+@socketio.on('logout_voter', namespace='/admin')
+def remove_voter(username):
+    user_name = username
+    if '-' in user_name:
+        user_name = user_name.split('-')[0].strip()
+    active = User.query.filter_by(username=user_name).first()
+    active.voting = False
+    active.logged_in = False
+    db.session.commit()
+
+#todo add logout of user
+
+def thread_check():
+    # need visibility of the global thread object
+    global thread_monitor
+    # Start the monitoring thread if it hasn't already
+    if thread_monitor is None:
+        print("Starting Monitor Thread")
+        thread_monitor = MonitorThread()
+        thread_monitor.start()
+
+
+def get_averages(table):
+    return_averages = {}
+    sql_average_cmc_sting = 'SELECT DISTINCT cmc FROM' \
+                            ' {} '.format(table)
+    card_cmcs_db = db.session.execute(sql_average_cmc_sting).fetchall()
+    card_cmcs = []
+    for card_cmc in card_cmcs_db:
+        card_cmcs.append(list(card_cmc))
+
+    for cmc in card_cmcs:
+        return_averages[cmc[0]] = get_averge_by_cmc(cmc[0], table)
+        print(return_averages[cmc[0]])
+    return return_averages
+
+
+def get_averge_by_cmc(cmc, table):
+    sql_average_cmc_sting = 'SELECT card_colour, rarity, cmc, card_average, card_count FROM ' \
+                           '{} WHERE cmc = \'{}\''.format(table, cmc)
+    # print(sql_average_cmc_sting)
+    card_averages_db = db.session.execute(sql_average_cmc_sting).fetchall()
+
+    card_averages = []
+    for card_db in card_averages_db:
+        card_averages.append(list(card_db))
+
+    return_dict = {'all': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                   'W': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                   'U': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                   'B': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                   'R': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                   'G': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                   'colourless': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                   'multi-colour': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}
+    rarity_pos = {'all': 1, 'common': 3, 'uncommon': 5, 'rare': 7, 'mythic': 9}
+
+    for card_av in card_averages:
+        # cmc
+        num_position = rarity_pos[card_av[1]]
+        #print(card_av[0])
+        #print(return_dict)
+        return_dict[card_av[0]][(num_position-1)] = card_av[3]
+        return_dict[card_av[0]][num_position] = card_av[4]
+        #print(return_dict[card_av[0]])
+
+    return return_dict
+
+
+def get_supertypes():
+    return_averages = {}
+    sql_average_supertype_sting = 'SELECT DISTINCT supertypes FROM' \
+                            ' Card_Supertypes_Metrics '.format()
+    card_supertypes_db = db.session.execute(sql_average_supertype_sting).fetchall()
+    card_supertypes = []
+    for card_supertype in card_supertypes_db:
+        card_supertypes.append(list(card_supertype))
+
+    for supertype in card_supertypes:
+        return_averages[supertype[0]] = get_supertypes_by_type(supertype[0])
+        #print(return_averages[cmc[0]])
+    return return_averages
+
+
+def get_supertypes_by_type(supertype):
+    sql_average_cmc_sting = 'SELECT rarity, card_colour, card_count FROM ' \
+                           'Card_Supertypes_Metrics WHERE supertypes = \'{}\''.format(supertype)
+    # print(sql_average_cmc_sting)
+    card_averages_db = db.session.execute(sql_average_cmc_sting).fetchall()
+
+    card_averages = []
+    for card_db in card_averages_db:
+        card_averages.append(list(card_db))
+
+    return_dict = {'All': [0, 0, 0, 0, 0],
+                   'W': [0, 0, 0, 0, 0],
+                   'U': [0, 0, 0, 0, 0],
+                   'B': [0, 0, 0, 0, 0],
+                   'R': [0, 0, 0, 0, 0],
+                   'G': [0, 0, 0, 0, 0],
+                   'colourless': [0, 0, 0, 0, 0],
+                   'multi-colour': [0, 0, 0, 0, 0]}
+    rarity_pos = {'All': 0, 'common': 1, 'uncommon': 2, 'rare': 3, 'mythic': 4}
+
+    for card_av in card_averages:
+        num_position = rarity_pos[card_av[0]]
+        return_dict[card_av[1]][num_position] = card_av[2]
+
+    return return_dict
