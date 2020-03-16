@@ -2,10 +2,12 @@ import scrython
 import requests
 import csv
 
-set_code = 'eld'
+# set_code = 'thb' # theros new
+set_code = 'dom'
+
 
 def get_all_cards():
-    new_cards = scrython.cards.Search(q='set:{} is:booster'.format(set_code), order='color')
+    new_cards = scrython.cards.Search(q='set:{} is:booster'.format(set_code), order='color', unique='cards')
     all_cards = new_cards.data()
     # print(new_cards.next_page())
     if new_cards.has_more():
@@ -25,15 +27,38 @@ def get_edited_cards(all_cards):
         'type_line': 'Land', 
         'oracle_text'
         '''
+        # print(card['name'])
         short_dict = {'name': card['name'],
                       'cmc': card['cmc'],
-                      'type': card['type_line'],
+                      'type': get_card_super_types(card['type_line']),
                       'rarity': card['rarity'],
                       'sub_types': get_card_sub_types(card['type_line']),
-                      'oracle_text': card['oracle_text']
+                      'oracle_text': get_oracle_text(card),
+                      'is_removal': 'None'
                       }
         edited_list.append(short_dict)
     return edited_list
+
+
+def get_oracle_text(card):
+    oracle_text = ''
+    if card['layout'] == 'normal':
+        oracle_text = card['oracle_text']
+    elif card['layout'] == 'adventure':
+        for face in card['card_faces']:
+            oracle_text += '\n ' + face['oracle_text']
+
+    return oracle_text.strip()
+
+
+def create_csv_from_edited_cards(name):
+    all_edited = get_edited_cards(get_all_cards())
+    csv_columns = ['name', 'cmc', 'type', 'rarity', 'sub_types', 'oracle_text', 'is_removal']
+    with open(name + '.csv', 'w+', encoding="utf-8-sig", newline='') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=csv_columns)
+        writer.writeheader()
+        for data in all_edited:
+            writer.writerow(data)
 
 
 def get_more_cards(all_card_data):
@@ -48,25 +73,32 @@ def get_more_cards(all_card_data):
         return card_data
 
 
+def get_card_super_types(card_type_line):
+    suptypes = card_type_line
+    if '—' in card_type_line:
+        suptypes = card_type_line.split('—')[0]
+    return suptypes
+
+
 def get_card_sub_types(card_type_line):
-    suptypes_return = []
+    suptypes_return = ''
     if '—' in card_type_line:
         suptypes = card_type_line.split('—')[1].split(' ')
         for sub in suptypes:
-            # add to the db
             if sub != '':
-                suptypes_return.append(sub.strip())
-    return suptypes_return
+                suptypes_return += ' ' + sub.strip()
+    return suptypes_return.strip()
+
 
 def get_card_sub_types_as_string(card_type_line):
     suptypes_return = ''
     if '—' in card_type_line:
         suptypes = card_type_line.split('—')[1].split(' ')
         for sub in suptypes:
-            # add to the db
             if sub != '':
                 suptypes_return.join(sub.strip(), ',')
     return suptypes_return
+
 
 def write_all_cards_to_csv():
     all_cards = get_edited_cards(get_all_cards())
@@ -77,4 +109,4 @@ def write_all_cards_to_csv():
             w.writerow(card)
 
 
-# write_all_cards_to_csv()
+create_csv_from_edited_cards('test_dom_cards')

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 __author__ = 'tomli'
 
+# todo clean up manage, get everything in its own file and contained.
 import eventlet
 eventlet.monkey_patch()
 
@@ -16,16 +17,14 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.path.pardir))
 
 from app import app, db, socketio
 from flask_script import Manager, prompt_bool
-from app.models import Card, User, Rulings, Card_colour,\
-    Card_Subtypes, Votes, Card_Supertypes, ToughnessAverages, PowerAverages, Card_SupertypesMetrics
+from database.models import Card, User, Rulings, CardColour,\
+    CardSubtypes, Votes, CardSupertypes, ToughnessAverages, PowerAverages,\
+    CardSupertypesMetrics
 from urllib import request
 
 manager = Manager(app)
 
-scryfall_String = 'https://api.scryfall.com/cards/search?q=set:grn%20order:color'
-
-set_code = 'eld'
-
+set_code = 'thb'
 
 @manager.command
 def initdb():
@@ -130,12 +129,12 @@ def initdb():
             if len(card['colors']) == 0:
                 # colourless
                 # print('colourless')
-                db.session.add(Card_colour(card_id=card['collector_number'],
+                db.session.add(CardColour(card_id=card['collector_number'],
                                        colour='colourless'))
             else:
                 for colour in card['colors']:
                     # print(colour)
-                    db.session.add(Card_colour(card_id=card['collector_number'],
+                    db.session.add(CardColour(card_id=card['collector_number'],
                                        colour=colour))
 
         #### card analysis ###
@@ -201,19 +200,19 @@ def initdb():
             for sub in subtypes:
                 if sub != '':
                     # print(sub)
-                    db.session.add(Card_Subtypes(card_id=card['collector_number'],
+                    db.session.add(CardSubtypes(card_id=card['collector_number'],
                                            subtype=sub.strip()))
 
             for sup in supertypes:
                 if sup != '':
-                    db.session.add(Card_Supertypes(card_id=card['collector_number'],
+                    db.session.add(CardSupertypes(card_id=card['collector_number'],
                                                  supertype=sup.strip()))
         else:
             supertypes = card['type_line'].split(' ')
             possible_supertypes.append(supertypes)
             for sup in supertypes:
                 if sup != '':
-                    db.session.add(Card_Supertypes(card_id=card['collector_number'],
+                    db.session.add(CardSupertypes(card_id=card['collector_number'],
                                                  supertype=sup.strip()))
 
 
@@ -232,7 +231,8 @@ def initdb():
     # for each distinct supertype combination find all cards relating to it.
     possible_supertypes.sort()
     possible_supertypes_distinct = list(possible_supertypes for possible_supertypes, _ in itertools.groupby(possible_supertypes))
-    print(possible_supertypes_distinct)
+    supertype_calculation(possible_supertypes_distinct)
+    print('SuperTypes Assesed')
     ### calculate metrics ###
     # power
     for key_cmc, value_cmc in average_power.items():
@@ -241,7 +241,7 @@ def initdb():
                 # print ('{}, {}:{}'.format(value_cmc[key_rarity], value_rarity, average_power_count[key_cmc][key_rarity]))
                 if average_power_count[key_cmc][key_colour][key_rarity] > 0:
                     average_power[key_cmc][key_colour][key_rarity] = round(float(value_rarity / average_power_count[key_cmc][key_colour][key_rarity]), 3)
-                    db.session.add(PowerAverages(card_colour=str(key_colour),
+                    db.session.add(PowerAverages(CardColour=str(key_colour),
                             rarity=str(key_rarity),
                             cmc=str(key_cmc),
                             card_average=float(average_power[key_cmc][key_colour][key_rarity]),
@@ -258,7 +258,7 @@ def initdb():
                     average_toughness[t_key_cmc][t_key_colour][t_key_rarity] = round(
                         float(t_value_rarity / average_toughness_count[t_key_cmc][t_key_colour][t_key_rarity]), 3)
 
-                    db.session.add(ToughnessAverages(card_colour=str(t_key_colour),
+                    db.session.add(ToughnessAverages(CardColour=str(t_key_colour),
                                                  rarity=str(t_key_rarity),
                                                  cmc=str(t_key_cmc),
                                                  card_average=float(average_toughness[t_key_cmc][t_key_colour][t_key_rarity]),
@@ -296,8 +296,6 @@ def initdb():
                         card_image='/static/img/multi colour break.png',
                         card_price=None,
                         card_rarity=None))
-
-    #add, multi, artifact.
 
     # add the control wait card for player use.
     db.session.add(Card(name="Wait Card",
@@ -346,7 +344,7 @@ def dropdb():
 @manager.command
 def runserver():
 
-    # todo split of clearing ratings to an aditional manage command
+    # todo split of clearing ratings to an additional manage command
     if True is False:
         all_cards = Card.query.all()
         votes_pos = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
@@ -402,15 +400,15 @@ def supertype_calculation(possible_supertypes_distinct):
             sql_where += ' \'' + supertype + '\','
         sql_where = sql_where[:-1]
         sql_supertype_cards = 'SELECT COUNT(card_id) FROM ' \
-                  '( SELECT Card_Supertypes.card_id, Card.card_color, Card.card_rarity FROM Card_Supertypes ' \
-                  'INNER JOIN Card ON Card_Supertypes.card_id=Card.id ' \
-                              'WHERE Card_Supertypes.supertype IN ({}) GROUP ' \
-                  'BY Card_Supertypes.card_id HAVING COUNT(Card_Supertypes.card_id) = {} )AS SUPERTYPE_COUNT' \
+                  '( SELECT CardSupertypes.card_id, Card.card_color, Card.card_rarity FROM CardSupertypes ' \
+                  'INNER JOIN Card ON CardSupertypes.card_id=Card.id ' \
+                              'WHERE CardSupertypes.supertype IN ({}) GROUP ' \
+                  'BY CardSupertypes.card_id HAVING COUNT(CardSupertypes.card_id) = {} )AS SUPERTYPE_COUNT' \
                   .format(sql_where, len(supertype_list))
         #print(sql_supertype_cards)
         count_cards_by_supertype = db.session.execute(sql_supertype_cards).fetchall()[0][0]
 
-        db.session.add(Card_SupertypesMetrics(card_colour=str('All'),
+        db.session.add(CardSupertypesMetrics(CardColour=str('All'),
                                          rarity=str('All'),
                                          supertypes=(sql_where.replace('\'','').strip()),
                                          card_count=int(count_cards_by_supertype))
@@ -421,17 +419,17 @@ def supertype_calculation(possible_supertypes_distinct):
         for colour in colour_list:
             for rarity in rarity_list:
                 sql_supertype_cards = 'SELECT COUNT(card_id) FROM ' \
-                                      '( SELECT Card_Supertypes.card_id, Card.card_color, Card.card_rarity FROM Card_Supertypes ' \
-                                      'INNER JOIN Card ON Card_Supertypes.card_id=Card.id ' \
-                                      'WHERE Card_Supertypes.supertype IN ({}) GROUP ' \
-                                      'BY Card_Supertypes.card_id HAVING COUNT(Card_Supertypes.card_id) = {} )AS SUPERTYPE_COUNT' \
+                                      '( SELECT CardSupertypes.card_id, Card.card_color, Card.card_rarity FROM CardSupertypes ' \
+                                      'INNER JOIN Card ON CardSupertypes.card_id=Card.id ' \
+                                      'WHERE CardSupertypes.supertype IN ({}) GROUP ' \
+                                      'BY CardSupertypes.card_id HAVING COUNT(CardSupertypes.card_id) = {} )AS SUPERTYPE_COUNT' \
                                       ' WHERE SUPERTYPE_COUNT.card_color = \'{}\' ' \
                                       'AND SUPERTYPE_COUNT.card_rarity = \'{}\' '\
                         .format(sql_where, len(supertype_list), colour, rarity)
                 # print(sql_supertype_cards)
                 count_cards_by_supertype = db.session.execute(sql_supertype_cards).fetchall()[0][0]
 
-                db.session.add(Card_SupertypesMetrics(card_colour=str(colour),
+                db.session.add(CardSupertypesMetrics(CardColour=str(colour),
                                                       rarity=str(rarity),
                                                       supertypes=(sql_where.replace('\'', '').strip()),
                                                       card_count=int(count_cards_by_supertype))

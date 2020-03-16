@@ -3,9 +3,9 @@ __author__ = 'tomli'
 from flask import render_template, url_for, flash, redirect, request
 from app import app, db, socketio, card_info
 from flask_socketio import emit
-from app.models import Card, User, Votes
+from database.models import Card, User, Votes
 from flask_login import login_required, login_user, current_user
-from app.forms import LoginForm
+from app.main.forms import LoginForm
 import datetime
 from app.monitor import MonitorThread
 from sqlalchemy import and_
@@ -31,6 +31,7 @@ def vote():
     # Card.next_card()
     return render_template('vote.html', card_image=card_im)
 
+# todo info, add blueprints set up app to work more cleanly
 
 @app.route('/info', methods=['GET', 'POST'])
 def info():
@@ -99,10 +100,10 @@ def score_recived(data):
             current_user_id = User.query.filter_by(username=current_user.username).first().id
             tracker_obj = Votes.query.filter((and_(Votes.card_id == current_card_id, Votes.user_id == current_user_id))).first()
             if tracker_obj:
-                print('updated: ' +str(current_user_id) + ':' + str(current_card_id))
+                print('updated: ' + str(current_user_id) + ':' + str(current_card_id))
                 tracker_obj.vote_score = score
             else:
-                print('added: ' +str(current_user_id) + ':' + str(current_card_id))
+                print('added: ' + str(current_user_id) + ':' + str(current_card_id))
                 db.session.add(Votes(card_id=current_card_id, user_id=current_user_id, vote_score=score))
 
             db.session.commit()
@@ -188,6 +189,7 @@ def remove_voter(username):
     active.voting = False
     db.session.commit()
 
+
 @socketio.on('logout_voter', namespace='/admin')
 def remove_voter(username):
     user_name = username
@@ -198,7 +200,6 @@ def remove_voter(username):
     active.logged_in = False
     db.session.commit()
 
-#todo add logout of user
 
 def thread_check():
     # need visibility of the global thread object

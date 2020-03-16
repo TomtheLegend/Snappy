@@ -12,9 +12,9 @@ Snappy - Login
         <form action="" method="post">
             {{form.hidden_tag()}}
             <table>
-                 <tr {% if form.username.errors %} class="error {% endif %}>
+                 <tr {% if form.username.errors %} class="error" {% endif %}>
                     <td>UserName:</td>
-                    <td>{{form.username(size=50)}}</td>
+                    <td name="q">{{form.username(size=50)}}</td>
                 </tr>
                 <tr class="error">
                     <td></td>
@@ -28,7 +28,7 @@ Snappy - Login
                 </tr>
                 <tr>
                     <td></td>
-                    <td><button type="submit">Submit</button>
+                    <td><button type="submit" name="submit">Submit</button>
                     </td>
                 </tr>
             </table>

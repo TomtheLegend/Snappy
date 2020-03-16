@@ -1,9 +1,8 @@
 __author__ = 'tomli'
 
-from app import socketio
 from flask_socketio import emit
-from app.models import Card, User, Votes, Rulings, Card_colour, Card_Subtypes
-from app import app, db
+from database.models import Card, User, Ratings, Rulings, CardColour, CardSubtypes
+from app import db
 import csv
 import json
 
@@ -22,13 +21,13 @@ def get_current_voters():
 def get_current_vote_count():
 
     current_card = Card.query.filter_by(current_selected=True).first()
-    votes_list = Votes.query.filter_by(card_id=current_card.id).all()
+    Ratings_list = Ratings.query.filter_by(card_id=current_card.id).all()
 
     current_users = User.query.filter_by(voting=True).all()
     voted_number = 0
 
     for voter in current_users:
-        for vote in votes_list:
+        for vote in Ratings_list:
             if voter.id == vote.user_id:
                 voted_number += 1
                 break
@@ -37,13 +36,13 @@ def get_current_vote_count():
     return str(voted_number)
 
 
-def get_current_votes_string():
-    return "{} / {} votes ".format(get_current_vote_count(), get_current_voters())
+def get_current_Ratings_string():
+    return "{} / {} Ratings ".format(get_current_vote_count(), get_current_voters())
 
 
 def send_update_vote_bar( disable_all=None):
-    votes = get_current_votes_string()
-    emit('vote_bar_message', {'button_disabled': disable_all, 'current_votes': votes, 'last_vote': ''},
+    Ratings = get_current_Ratings_string()
+    emit('vote_bar_message', {'button_disabled': disable_all, 'current_Ratings': Ratings, 'last_vote': ''},
                         namespace='/vote', broadcast=True)
 
 
@@ -75,19 +74,19 @@ def get_card_info():
     card_dict['info']['card price $'] = current_card.card_price
 
     # card colour breakdown
-    card_colours = Card_colour.query.filter_by(card_id=current_card.id).all()
-    for colour in card_colours:
+    CardColours = CardColour.query.filter_by(card_id=current_card.id).all()
+    for colour in CardColours:
         #cards in the colour
         sql_colour_str = 'SELECT COUNT(card_id) FROM ' \
-                  '( SELECT card_id, colour FROM Card_colour GROUP BY card_id HAVING COUNT(card_id) = 1 )AS ONLY_ONCE' \
+                  '( SELECT card_id, colour FROM CardColour GROUP BY card_id HAVING COUNT(card_id) = 1 )AS ONLY_ONCE' \
                   ' WHERE ONLY_ONCE.colour = \'{}\''.format(str(colour.colour))
         solo_colour = db.session.execute(sql_colour_str).fetchall()
         card_dict['info'][str(colour.colour)] = ':all - ' + str(solo_colour[0][0])
         # rarity in the colour
         sql_rariry_str = 'SELECT COUNT(card_id) FROM ' \
-                  '( SELECT Card_colour.card_id, Card_colour.colour, Card.card_rarity FROM Card_colour ' \
-                  'INNER JOIN Card ON Card_colour.card_id=Card.id GROUP ' \
-                  'BY Card_colour.card_id HAVING COUNT(Card_colour.card_id) = 1 )AS ONLY_ONCE' \
+                  '( SELECT CardColour.card_id, CardColour.colour, Card.card_rarity FROM CardColour ' \
+                  'INNER JOIN Card ON CardColour.card_id=Card.id GROUP ' \
+                  'BY CardColour.card_id HAVING COUNT(CardColour.card_id) = 1 )AS ONLY_ONCE' \
                   ' WHERE ONLY_ONCE.colour = \'{}\' ' \
                   'AND ONLY_ONCE.card_rarity = \'{}\''.format(str(colour.colour), current_card.card_rarity)
         solo_colour_rarity = db.session.execute(sql_rariry_str).fetchall()
@@ -95,10 +94,10 @@ def get_card_info():
 
 
     # card sub types total
-    card_subtypes = Card_Subtypes.query.filter_by(card_id=current_card.id).all()
-    for subtype in card_subtypes:
+    all_CardSubtypes = CardSubtypes.query.filter_by(card_id=current_card.id).all()
+    for subtype in all_CardSubtypes:
         sql_subtype_str = 'SELECT COUNT(card_id) FROM' \
-                          ' Card_Subtypes WHERE Card_Subtypes.subtype = \'{}\''.format(str(subtype.subtype))
+                          ' CardSubtypes WHERE CardSubtypes.subtype = \'{}\''.format(str(subtype.subtype))
         solo_type = db.session.execute(sql_subtype_str).fetchall()
         # print (solo_type)
         card_dict['info'][str(subtype.subtype)] = ' ' + str(solo_type[0][0])
@@ -122,6 +121,8 @@ def change_card():
         if next.name == "Wait Card":
             make_CSV()
             wait_card = True
+
+    # todo add in an end of voting card and have it loop at this card
 
     print('change card colour: ' + current.card_color + ' - ' + next.card_color)
     if current.card_color != next.card_color:
@@ -159,12 +160,12 @@ def change_card():
 
 def make_CSV():
     # output cards data to local CSV
-    outfile = open('total_votes.csv', 'w', newline='')
+    outfile = open('total_Ratings.csv', 'w', newline='')
     outcsv = csv.writer(outfile)
 
     sql_all_cards = 'SELECT * FROM Card'
     all_cards = db.session.execute(sql_all_cards)
-    #print (all_cards.keys())
+    # print (all_cards.keys())
     outcsv.writerow(all_cards.keys())
     # dump rows
     outcsv.writerows(all_cards.fetchall())
@@ -172,9 +173,9 @@ def make_CSV():
     outfile.close()
 
     all_users = User.query.all()
-    #loop through all users
+    # loop through all users
     for user in all_users:
-        #generate  csv for each user
+        # generate  csv for each user
         user_CSV(user)
 
     # set to card waiting forever
@@ -191,8 +192,8 @@ def user_CSV(user):
     outfile = open('app/static/csvs/' + user.username + '.csv', 'w', newline='')
     outcsv = csv.writer(outfile)
 
-    sql_all_cards = 'SELECT Card.*, Votes.vote_score FROM Card ' \
-                    'INNER JOIN Votes ON Card.id=Votes.card_id WHERE Votes.user_id = \'{}\''.format(user.id)
+    sql_all_cards = 'SELECT Card.*, Ratings.vote_score FROM Card ' \
+                    'INNER JOIN Ratings ON Card.id=Ratings.card_id WHERE Ratings.user_id = \'{}\''.format(user.id)
     all_cards = db.session.execute(sql_all_cards)
     #print(all_cards.keys())
     outcsv.writerow(all_cards.keys())
@@ -201,12 +202,13 @@ def user_CSV(user):
 
     outfile.close()
 
+
 def send_user_list():
     users = User.query.all()
     # get current card
     current_card = Card.query.filter_by(current_selected=True).first()
     #get voted list
-    voted = Votes.query.filter_by(card_id=current_card.id).all()
+    voted = Ratings.query.filter_by(card_id=current_card.id).all()
     voters = []
     for voter in voted:
         voters.append(voter.user_id)
@@ -230,25 +232,26 @@ def send_user_list():
     emit('users', data, namespace='/admin', broadcast=True)
     emit('users', voters, namespace='/info', broadcast=True)
 
-def reset_votes(id):
-    Votes.query.filter_by(id=id).delete()
+
+def reset_Ratings(id):
+    Ratings.query.filter_by(id=id).delete()
     card = Card.query.filter_by(id=id).first()
     card.rating = None
-    Votes.query.filter_by(card_id=id).delete()
+    Ratings.query.filter_by(card_id=id).delete()
     db.session.commit()
 
 def re_vote(id):
     if id == 'current':
         current = Card.query.filter_by(current_selected=True).first()
-        reset_votes(current.id)
+        reset_Ratings(current.id)
     elif id == 'previous':
         current = Card.query.filter_by(current_selected=True).first()
         previous = current.id - 1
         if previous > 0:
             previous_card = Card.query.filter_by(id=previous).first()
-            reset_votes(previous_card.id)
+            reset_Ratings(previous_card.id)
     else:
-        reset_votes(id)
+        reset_Ratings(id)
 
 
 def send_ratings():
@@ -265,10 +268,10 @@ def send_ratings():
         card_ratings.append(list(card_all))
 
     # todo add commons/ colour / power/ toughness/ supertypes? inbed card image for tooltip hover.
-    card_colour_ratings = get_card_colour_page_info(current_card.card_color)
+    CardColour_ratings = get_CardColour_page_info(current_card.card_color)
 
     all_card_ratings = {'card_ratings': card_ratings}
-    all_card_ratings.update(card_colour_ratings)
+    all_card_ratings.update(CardColour_ratings)
     # print(card_ratings)
     emit('all_card_ratings', all_card_ratings, namespace='/info', broadcast=True)
 
@@ -283,26 +286,26 @@ def send_pervious_voted():
                             ' Card WHERE id = \'{}\''.format(next_id)
         prev_card_db = db.session.execute(sql_prev_card_str).first()
         if prev_card_db:
-            all_votes_sql = 'SELECT User.username, Votes.vote_score FROM Votes ' \
-                      'INNER JOIN User ON User.id=Votes.user_id WHERE Votes.card_id = \'{}\''.format(prev_card_db[0])
-            prev_card_votes_db = db.session.execute(all_votes_sql).fetchall()
-            # print(prev_card_votes_db)
+            all_Ratings_sql = 'SELECT User.username, Ratings.vote_score FROM Ratings ' \
+                      'INNER JOIN User ON User.id=Ratings.user_id WHERE Ratings.card_id = \'{}\''.format(prev_card_db[0])
+            prev_card_Ratings_db = db.session.execute(all_Ratings_sql).fetchall()
+            # print(prev_card_Ratings_db)
             card_ratings = []
-            for card_all_prev in prev_card_votes_db:
+            for card_all_prev in prev_card_Ratings_db:
                 prev_list = list(card_all_prev)
                 prev_list[1] = prev_list[1]/2
                 card_ratings.append(prev_list)
             # get the card name and its vote, other info?
 
-            # prev_votes = [[]]
+            # prev_Ratings = [[]]
             # prev_card_info = []
-            previous_card_data = {'prev_card_info': [list(prev_card_db)], 'prev_card_votes':  card_ratings}
+            previous_card_data = {'prev_card_info': [list(prev_card_db)], 'prev_card_Ratings':  card_ratings}
             # print (previous_card_data)
             emit('previous_card', previous_card_data, namespace='/info', broadcast=True)
 
 
-def get_card_colour_page_info(colour):
-    #all cards of the colour
+def get_CardColour_page_info(colour):
+    # all cards of the colour
     sql_card_rating_str = 'SELECT name, rating, card_rarity, card_image FROM' \
                           ' Card where card_color = \'{}\' ORDER BY rating DESC LIMIT 10'.format(colour)
     card_ratings_db = db.session.execute(sql_card_rating_str).fetchall()
@@ -333,7 +336,7 @@ def get_card_colour_page_info(colour):
     if colour in bg_colours:
         bg_colour = bg_colours[colour]
 
-    all_card_ratings = {'card_colour_ratings': card_ratings, 'common_ratings': card_common_ratings,
+    all_card_ratings = {'CardColour_ratings': card_ratings, 'common_ratings': card_common_ratings,
                         'bg_colour': bg_colour, }
 
     return all_card_ratings
