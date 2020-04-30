@@ -2,8 +2,7 @@ import scrython
 import requests
 import csv
 
-# set_code = 'thb' # theros new
-set_code = 'dom'
+set_code = 'grv'
 
 
 def get_all_cards():
@@ -107,6 +106,3 @@ def write_all_cards_to_csv():
         w = csv.DictWriter(outfile, all_cards[0].keys())
         for card in all_cards:
             w.writerow(card)
-
-
-create_csv_from_edited_cards('test_dom_cards')
