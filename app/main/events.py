@@ -64,7 +64,7 @@ def re_vote(data):
     re_vote(data)
 
 
-@main_app.socketio.on('enable_vote_buttons', namespace='/admin')
+@main_app.socket_io.on('enable_vote_buttons', namespace='/admin')
 def enable_vote_button():
     send_update_vote_bar(False)
 

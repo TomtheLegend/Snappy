@@ -46,7 +46,6 @@ def test_unsuccessful_login(browser):
     assert title != 'Snappy'
 
 
-
 def get_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
@@ -58,5 +57,6 @@ def get_ip():
     finally:
         s.close()
     return IP
+
 
 print(get_ip())

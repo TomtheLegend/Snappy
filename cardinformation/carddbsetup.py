@@ -2,7 +2,7 @@ import scrython
 import requests
 import csv
 
-set_code = 'grv'
+set_code = 'iko'
 
 
 def get_all_cards():

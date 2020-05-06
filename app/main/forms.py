@@ -1,7 +1,7 @@
 __author__ = 'tomli'
 
 from flask_wtf import Form
-from wtforms.fields import StringField,SubmitField
+from wtforms.fields import StringField, SubmitField
 from wtforms.validators import DataRequired
 
 

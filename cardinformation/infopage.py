@@ -6,7 +6,7 @@ from flask_socketio import emit
 def get_averge_by_cmc(cmc, table):
 
     card_averages = searchcards.get_all_card_metrics_by_cmc(table, cmc)
-    return_dict = get_colour_dict_array(9)
+    return_dict = get_colour_dict_array(10)
     rarity_pos = {'all': 1, 'common': 3, 'uncommon': 5, 'rare': 7, 'mythic': 9}
 
     for card_colour, card_rarity, _, card_average, card_count in card_averages:
@@ -44,7 +44,7 @@ def get_supertypes():
 def get_supertypes_by_type(supertype):
     card_averages = searchcards.get_supertypes_by_type(supertype)
     return_dict = get_colour_dict_array(5)
-    rarity_pos = {'All': 0, 'common': 1, 'uncommon': 2, 'rare': 3, 'mythic': 4}
+    rarity_pos = {'all': 0, 'common': 1, 'uncommon': 2, 'rare': 3, 'mythic': 4}
     for card_av in card_averages:
         num_position = rarity_pos[card_av[0]]
         return_dict[card_av[1]][num_position] = card_av[2]

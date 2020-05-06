@@ -50,18 +50,18 @@
             var socket = io.connect('http://' + document.domain + ':' + location.port);
 
             document.getElementById("vote_go").onclick = function () {
-                location.href = '{{ url_for('vote') }}';
+                location.href = '{{ url_for('main.vote') }}';
             };
 
             document.getElementById("info").onclick = function () {
-                location.href = '{{ url_for('info') }}';
+                location.href = '{{ url_for('main.info') }}';
             };
 
             document.getElementById("login").onclick = function () {
-                location.href = '{{ url_for('login') }}';
+                location.href = '{{ url_for('main.login') }}';
             };
             document.getElementById("admin").onclick = function () {
-                location.href = '{{ url_for('admin') }}';
+                location.href = '{{ url_for('main.admin') }}';
             };
 
         </script>

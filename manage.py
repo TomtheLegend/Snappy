@@ -2,7 +2,7 @@
 __author__ = 'tomli'
 
 import eventlet
-eventlet.monkey_patch()
+#eventlet.monkey_patch()
 
 import sys, os
 import scrython
@@ -11,7 +11,7 @@ import itertools
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.path.pardir))
 
-from app import db, main_app
+from app import main_app
 from flask_script import Manager, prompt_bool
 from database.models import Card, User, Rulings, CardColour,\
     CardSubtypes, CardSupertypes, ToughnessAverages, PowerAverages,\
@@ -19,9 +19,9 @@ from database.models import Card, User, Rulings, CardColour,\
 from urllib import request
 
 
-manager = Manager()
+manager = Manager(main_app.app)
 # todo add logging
-set_code = 'thb'
+set_code = 'iko'
 
 
 @manager.command
@@ -31,8 +31,10 @@ def initdb():
     # get the types and colour associations.
     # work out relevent metrics
     """
+    main_app.create_app()
+
     # set up variables for averages
-    # todo refactor and move to relevant sub folders
+    # todo refactor and move to relevant sub folders, split up database add for ease.
     average_power = {}
     average_power_count = {}
     average_toughness = {}
@@ -65,7 +67,7 @@ def initdb():
     possible_supertypes = []
     all_cards = get_all_cards()
 
-    db.create_all()
+    main_app.db.create_all()
     # add all cards
     for card in all_cards:
         # get all card attributes required
@@ -117,7 +119,7 @@ def initdb():
             else:
                 card_color = card['colors'][0]
         # add the card to the database
-        db.session.add(Card(id=card['collector_number'],
+        main_app.db.session.add(Card(id=card['collector_number'],
                             name=card['name'],
                             card_image=image_loc,
                             card_price=card_price,
@@ -130,12 +132,12 @@ def initdb():
             if len(card['colors']) == 0:
                 # colourless
                 # print('colourless')
-                db.session.add(CardColour(card_id=card['collector_number'],
+                main_app.db.session.add(CardColour(card_id=card['collector_number'],
                                           colour='colourless'))
             else:
                 for colour in card['colors']:
                     # print(colour)
-                    db.session.add(CardColour(card_id=card['collector_number'],
+                    main_app.db.session.add(CardColour(card_id=card['collector_number'],
                                               colour=colour))
 
         #### card analysis ###
@@ -201,19 +203,19 @@ def initdb():
             for sub in subtypes:
                 if sub != '':
                     # print(sub)
-                    db.session.add(CardSubtypes(card_id=card['collector_number'],
+                    main_app.db.session.add(CardSubtypes(card_id=card['collector_number'],
                                                 subtype=sub.strip()))
 
             for sup in supertypes:
                 if sup != '':
-                    db.session.add(CardSupertypes(card_id=card['collector_number'],
+                    main_app.db.session.add(CardSupertypes(card_id=card['collector_number'],
                                                   supertype=sup.strip()))
         else:
             supertypes = card['type_line'].split(' ')
             possible_supertypes.append(supertypes)
             for sup in supertypes:
                 if sup != '':
-                    db.session.add(CardSupertypes(card_id=card['collector_number'],
+                    main_app.db.session.add(CardSupertypes(card_id=card['collector_number'],
                                                   supertype=sup.strip()))
 
 
@@ -223,10 +225,10 @@ def initdb():
         if card_rulings.data():
             for rule in card_rulings.data():
                 if rule['source'] == 'wotc':
-                    db.session.add(Rulings(card_id=card['collector_number'],
+                    main_app.db.session.add(Rulings(card_id=card['collector_number'],
                                            ruling=rule['comment']))
 
-    db.session.commit()
+    main_app.db.session.commit()
     print('all Cards added')
 
     # for each distinct supertype combination find all cards relating to it.
@@ -244,7 +246,7 @@ def initdb():
                 if average_power_count[key_cmc][key_colour][key_rarity] > 0:
                     average_power[key_cmc][key_colour][key_rarity] = \
                         round(float(value_rarity / average_power_count[key_cmc][key_colour][key_rarity]), 3)
-                    db.session.add(PowerAverages(CardColour=str(key_colour),
+                    main_app.db.session.add(PowerAverages(card_colour=str(key_colour),
                                                  rarity=str(key_rarity),
                                                  cmc=str(key_cmc),
                                                  card_average=float(average_power[key_cmc][key_colour][key_rarity]),
@@ -261,7 +263,7 @@ def initdb():
                     average_toughness[t_key_cmc][t_key_colour][t_key_rarity] = round(
                         float(t_value_rarity / average_toughness_count[t_key_cmc][t_key_colour][t_key_rarity]), 3)
 
-                    db.session.add(ToughnessAverages(CardColour=str(t_key_colour),
+                    main_app.db.session.add(ToughnessAverages(card_colour=str(t_key_colour),
                                    rarity=str(t_key_rarity),
                                    cmc=str(t_key_cmc),
                                    card_average=float(average_toughness[t_key_cmc][t_key_colour][t_key_rarity]),
@@ -271,63 +273,64 @@ def initdb():
     print('Average power & toughness calculated')
 
     # add the wait cards ####
-    db.session.add(Card(name="Wait Card colourless",
+    main_app.db.session.add(Card(name="Wait Card colourless",
                         card_image='/static/img/colourless break.png',
                         card_price=None,
                         card_rarity=None))
-    db.session.add(Card(name="Wait Card W",
+    main_app.db.session.add(Card(name="Wait Card W",
                         card_image='/static/img/plains break.png',
                         card_price=None,
                         card_rarity=None))
-    db.session.add(Card(name="Wait Card U",
+    main_app.db.session.add(Card(name="Wait Card U",
                         card_image='/static/img/island break.png',
                         card_price=None,
                         card_rarity=None))
-    db.session.add(Card(name="Wait Card B",
+    main_app.db.session.add(Card(name="Wait Card B",
                         card_image='/static/img/swamp break.png',
                         card_price=None,
                         card_rarity=None))
-    db.session.add(Card(name="Wait Card R",
+    main_app.db.session.add(Card(name="Wait Card R",
                         card_image='/static/img/mountain break.png',
                         card_price=None,
                         card_rarity=None))
-    db.session.add(Card(name="Wait Card G",
+    main_app.db.session.add(Card(name="Wait Card G",
                         card_image='/static/img/forest break.png',
                         card_price=None,
                         card_rarity=None))
-    db.session.add(Card(name="Wait Card multi-colour",
+    main_app.db.session.add(Card(name="Wait Card multi-colour",
                         card_image='/static/img/multi colour break.png',
                         card_price=None,
                         card_rarity=None))
 
     # add the control wait card for player use.
-    db.session.add(Card(name="Wait Card",
+    main_app.db.session.add(Card(name="Wait Card",
                         card_image='/static/img/a-pause-for-reflection.png',
                         card_price=None,
                         card_rarity=None,
                         card_color=None))
 
     print('wait cards added')
-    db.session.commit()
+    main_app.db.session.commit()
 
     start = Card.query.filter_by(name="Wait Card").first()
     start.current_selected = True
-    db.session.commit()
+    main_app.db.session.commit()
 
     # add the users
-    db.session.add(User(username='tom'))
-    db.session.add(User(username='bobtheadmin', admin=True))
-    db.session.add(User(username='julie'))
-    db.session.commit()
+    print('Default users added')
+    main_app.db.session.add(User(username='tom'))
+    main_app.db.session.add(User(username='bobtheadmin', admin=True))
+    main_app.db.session.add(User(username='julie'))
+    main_app.db.session.commit()
 
-    print('Added Users')
     print('Initialised the DB')
 
 
 @manager.command
 def dropdb():
     if prompt_bool("are you sure want to drop DB, and lose all data"):
-        db.drop_all()
+        main_app.create_app(False)
+        main_app.db.drop_all()
         print('Dropped the DB')
 
 
@@ -340,6 +343,8 @@ def runserver(test=False):
         main_app.create_app(True)
     else:
         main_app.create_app(False)
+    # print(main_app.app.url_map)
+    print([user.username for user in User.query.all()])
     main_app.socket_io.run(main_app.app, host='192.168.1.70', port='5000')
     # 192.168.1.117
     # 192.168.0.14
@@ -372,7 +377,19 @@ def reset_db():
         user.logged_in = False
         print(user.username)
         print(user.logged_in)
-    db.session.commit()
+    main_app.db.session.commit()
+
+
+@manager.command
+def resetusers():
+    main_app.create_app(False)
+    all_users = User.query.all()
+    for user in all_users:
+        user.voting = False
+        user.logged_in = False
+        print(user.username)
+        print(user.logged_in)
+    main_app.db.session.commit()
 
 
 def representsint(s):
@@ -396,10 +413,10 @@ def supertype_calculation(possible_supertypes_distinct):
                               'BY CardSupertypes.card_id HAVING COUNT(CardSupertypes.card_id) = {} )AS SUPERTYPE_COUNT' \
                               .format(sql_where, len(supertype_list))
         # print(sql_supertype_cards)
-        count_cards_by_supertype = db.session.execute(sql_supertype_cards).fetchall()[0][0]
+        count_cards_by_supertype = main_app.db.session.execute(sql_supertype_cards).fetchall()[0][0]
 
-        db.session.add(CardSupertypesMetrics(CardColour=str('All'),
-                                         rarity=str('All'),
+        main_app.db.session.add(CardSupertypesMetrics(card_colour=str('all'),
+                                         rarity=str('all'),
                                          supertypes=(sql_where.replace('\'','').strip()),
                                          card_count=int(count_cards_by_supertype))
                        )
@@ -417,15 +434,17 @@ def supertype_calculation(possible_supertypes_distinct):
                                       'AND SUPERTYPE_COUNT.card_rarity = \'{}\' '\
                         .format(sql_where, len(supertype_list), colour, rarity)
                 # print(sql_supertype_cards)
-                count_cards_by_supertype = db.session.execute(sql_supertype_cards).fetchall()[0][0]
+                count_cards_by_supertype = main_app.db.session.execute(sql_supertype_cards).fetchall()[0][0]
 
-                db.session.add(CardSupertypesMetrics(CardColour=str(colour),
+                main_app.db.session.add(CardSupertypesMetrics(card_colour=str(colour),
                                                       rarity=str(rarity),
                                                       supertypes=(sql_where.replace('\'', '').strip()),
                                                       card_count=int(count_cards_by_supertype))
                                )
 
-    db.session.commit()
+    main_app.db.session.commit()
+
+
 
 
 if __name__ == '__main__':

@@ -21,6 +21,6 @@ def get_current_bg_colour_hex():
 
 def get_colour_dict_array(length):
     array = [0] * length
-    colours = ['All', 'W', 'U', 'B', 'R', 'G', 'colourless', 'multi-colour']
+    colours = ['all', 'W', 'U', 'B', 'R', 'G', 'colourless', 'multi-colour']
     return_dict = {col: array for col in colours}
     return return_dict

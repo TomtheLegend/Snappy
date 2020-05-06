@@ -1,7 +1,7 @@
 __author__ = 'tomli'
 from threading import Thread, Event
 from database.models import Card, User, Ratings
-from app import db
+from app import main_app
 from time import sleep
 from cardinformation import voterpage, infopage
 from app.settings import config
@@ -55,12 +55,12 @@ class MonitorThread(Thread):
                     average_vote = 0
                     for vote in ratings_list:
                         average_vote += float(vote.vote_score)
-
+                    # todo move to database files
                     # add all Ratings together, divide by user number and half for stars
                     vote_av_raw = (average_vote / len(ratings_list)) / 2
                     average_vote = round((vote_av_raw*2), 1) / 2
                     current_card.rating = average_vote
-                    db.session.commit()
+                    main_app.db.session.commit()
 
                     # update to next card
                     voterpage.change_card()
@@ -74,5 +74,13 @@ class MonitorThread(Thread):
         self.monitor_function()
 
 
+# set the monitor thread
+monitor_thread = MonitorThread(main_app.app)
 
+
+def monitor_thread_start():
+    # Start the monitoring thread if it hasn't already
+    if monitor_thread is not None and monitor_thread.is_alive() is False:
+        print("Starting Monitor Thread")
+        monitor_thread.start()
 
